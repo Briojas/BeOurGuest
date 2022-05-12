@@ -4,14 +4,15 @@ Creates, or connects to, an access Point
 */        
 
 //$$ Libraries $$//
-#include <WiFi.h>
-
+#include <WiFiClient.h>
+#include <WiFiClientSecure.h>
 //$$ Functions $$//
     /*Inputs: 
         accessPointName     - name of soft access point
         accessPointPW       - password, must be 8 chars
-        accessPointSoft     - True: creates an access point with the name and password given
-                            - False: connects to an existing access point with the name and password given
-        accessPointHidden   - 0: visible, 1: hidden (default)
+        accessPointSoft     - true: creates an access point with the name and password given
+                            - false (default): connects to an existing access point with the name and password given
+        accessPointHidden   - false: visible 
+                            - true (default): hidden
     */
-void wifi_init(char* accessPointName, char* accessPointPW, bool accessPointSoft, int accessPointHidden = 1);
+void wifi_init(const char wifiName[], const char wifiPW[], bool softAccessPoint = false, bool hiddenAccessPoint = true);

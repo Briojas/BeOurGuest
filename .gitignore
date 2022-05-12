@@ -4,13 +4,12 @@ package/
 .env
 
 #rfidElement
-IoT-Devices/rfidElement/.pio
-IoT-Devices/rfidElement/.vscode/.browse.c_cpp.db*
-IoT-Devices/rfidElement/.vscode/c_cpp_properties.json
-IoT-Devices/rfidElement/.vscode/launch.json
-IoT-Devices/rfidElement/.vscode/ipch
 IoT-Devices/rfidElement/lib/wifi/wifiLogin.h
 IoT-Devices/rfidElement/lib/mqtt/mqttLogin.h
+
+#vehicle
+IoT-Devices/vehicle/lib/wifi/wifiLogin.h
+IoT-Devices/vehicle/lib/mqtt/mqttLogin.h
 
 #CL-EA-MQTT-CLIENT
 CL-EA-MQTT-CLIENT/.env

@@ -1,12 +1,18 @@
 #include <Arduino.h>
 #include <wifiSetup.h>
 
-void wifi_init(char* wifiName, char* wifiPW, bool softAccessPoint, int hiddenAccessPoint){
+void wifi_init(const char wifiName[], const char wifiPW[], bool softAccessPoint, bool hiddenAccessPoint){
     IPAddress myIP;
+    int hideAP;
     if (softAccessPoint){ 
             //create an access point
         WiFi.enableAP(true);
-        Serial.println(WiFi.softAP(wifiName, wifiPW, 1, hiddenAccessPoint, 4)); //ssid,pw,channel,hidden,connections
+        if(hiddenAccessPoint){
+            hideAP = 1;
+        }else{
+            hideAP = 0;
+        }
+        Serial.println(WiFi.softAP(wifiName, wifiPW, 1, hideAP, 4)); //ssid,pw,channel,hidden,connections
         myIP = WiFi.softAPIP();
         Serial.print("Created new access point called: ");
         Serial.println(wifiName);
@@ -21,5 +27,5 @@ void wifi_init(char* wifiName, char* wifiPW, bool softAccessPoint, int hiddenAcc
     }
         //display IP address
     Serial.print("IP address: ");
-    Serial.print(myIP);
+    Serial.println(myIP);
 }
