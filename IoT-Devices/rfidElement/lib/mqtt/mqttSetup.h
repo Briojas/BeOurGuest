@@ -5,14 +5,14 @@ Establishes client connection to MQTT 3.1.1 Broker
 
 //$$ Libraries $$//
 #include <MQTT.h>
-#include <WiFi.h> //needed for WiFiClient
+#include <WiFi.h> //needed for WiFiClient references
 
 //$$ Structs $$//
 struct mqtt_pubSubDef_t {
     String topic; //topic being subscribed to or published on
     String payload; //Storage of data to be published or of data subscribed to
     int qos = 0; //quality of service (qos) level (default 0)
-    bool retained = false; //Currently not supported by Shiftr.io Only applies to published messages
+    bool retained = false; //should published message be kept and provided to new subscribing clients
 };
 
 //$$ Classes & Functions $$//
@@ -28,8 +28,8 @@ class MQTT_Client_Handler {
             //last will and testament defaults. 
         char lwt_topic[20] = "/lastWill"; //lwt topic. device's name will be appended to front.
         char lwt_payload[20] = "connection lost";
-        bool lwt_retained = false;
-        int lwt_qos = 0;
+        bool lwt_retained = true;
+        int lwt_qos = 2;
             //keep alive interval (seconds)
         int keepAlive = 10;
             //session retention on the broker side
@@ -49,11 +49,11 @@ class MQTT_Client_Handler {
     Outputs:  
         None
     */
-        MQTT_Client_Handler(MQTTClient &_mqttClient, Client &_wifiClient, const char brokerName[], mqtt_pubSubDef_t *_subs, int _numSubs, MQTTClientCallbackSimple callback);
+        MQTT_Client_Handler(MQTTClient &_mqttClient, Client &_wifiClient, const char brokerName[], mqtt_pubSubDef_t *_subs, int _numSubs, MQTTClientCallbackSimple callback, const int port = 1883);
 
     /*
     Inputs: 
-        const char clientName[] - name of this device as it will appear in the broker
+        const char deviceName[] - name of this device as it will appear in the broker
         const char brokerLogin[] - login username for the cloud mqtt service
         const char brokerPW[] - login password for the cloud mqtt service
         MQTTClient &mqttClient - mqtt client itself that connects to the broker
@@ -62,17 +62,19 @@ class MQTT_Client_Handler {
     Outputs:
         None. mqtt_client.connected() will be used to determine connection status to the broker. 
     */
-        void connect(const char clientName[], const char brokerLogin[], const char brokerPW[]);
+        void connect(const char deviceName[]);
+        void connect(const char deviceName[], const char brokerLogin[]);
+        void connect(const char deviceName[], const char brokerLogin[], const char brokerPW[]);
 
     /*
     Inputs: 
-        mqtt_subDef_t message - a message with a payload that is ready to be published
+        const char deviceName[] - name of this device as it will appear in the broker
     Purpose:
-        Submits the message to the broker for publishing.
+        Sets last will and testament of device
     Outputs:  
         None
     */
-        void publish(mqtt_pubSubDef_t message);
+        void set_options(const char deviceName[]);
 
     /*
     Inputs: 
@@ -84,4 +86,24 @@ class MQTT_Client_Handler {
         False - client is currently disconnected and needs to reconnect
     */
         bool loop();
+
+    /*
+    Inputs: 
+        mqtt_subDef_t message - a message with a payload that is ready to be published
+    Purpose:
+        Submits the message to the broker for publishing.
+    Outputs:  
+        None
+    */
+        void publish(mqtt_pubSubDef_t message);
+    
+    /*
+    Inputs: 
+        None, subs and their latest callback data are stored within the client
+    Purpose:
+        Subscribes to topics on the broker specified with the qos specified in the constructor
+    Outputs:  
+        None
+    */
+        void subscribe();
 };

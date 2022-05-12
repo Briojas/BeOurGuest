@@ -29,20 +29,17 @@ String currentProfile;
 
 //WiFi
 #include <wifiSetup.h>
-WiFiClient wifi_client;
-//const char wifiName[] = "Ponderosa";
-//const char wifiPW[] = "Zaq12wsx";
-const char wifiName[] = "NPS_Devices";
-const char wifiPW[] = "FourScoreAnd7YearsAgo";
-
+#include <wifiLogin.h>
+//TODO: Manage secure vs not-secure wifi_client selection based on MQTT port selection
+// WiFiClient wifi_client;
+WiFiClientSecure wifi_client;
 
 //MQTT
 #include <mqttSetup.h>
+#include <mqttLogin.h>
 MQTTClient mqtt_client;
+const int port = 8883;
 const char clientName[] = "rfidElement";
-const char brokerName[] = "modified.cloud.shiftr.io";
-const char brokerLogin[] = "modified";
-const char brokerPW[] = "zaq12wsxcde34rfv";
 const int numPubs = 1;
 mqtt_pubSubDef_t pubs[numPubs];
 const int numSubs = 1;
@@ -58,9 +55,9 @@ void readSubs(String &topic, String &payload){
 }
 
 //General inits and defs
-MQTT_Client_Handler rfid_mqtt_client(mqtt_client, wifi_client, brokerName, subs, numSubs, readSubs); //initialize the mqtt handler
+MQTT_Client_Handler rfid_mqtt_client(mqtt_client, wifi_client, brokerName, subs, numSubs, readSubs, port); //initialize the mqtt handler
 void checkAndPublishTag();
-void updateLEDs();
+void updateLEDs(int numToShow);
 String getTimestamp();
 
 
@@ -75,15 +72,18 @@ void setup() {
   FastLED.setBrightness(BRIGHTNESS);
 ///////////////   WiFi   ///////////////
   wifi_init(wifiName, wifiPW);
+  wifi_client.setInsecure(); //TODO: only call when WiFiClientSecure used
 ///////////////   MQTT   ///////////////
   String deviceName = clientName; //converting const char to str
                 //$$ SUBS $$//
     //listening to broker status
-  subs[0].topic = "/LEDs"; 
+  subs[0].topic = "/" + deviceName + "/LEDs"; 
+  subs[0].qos = 2;
                 //$$ PUBS $$//
     //posting score data from rfid readings
   pubs[0].topic = "/" + deviceName + "/tag";
   pubs[0].qos = 2; 
+  pubs[0].retained = true;
                 //$$ connect $$//
   rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
 ///////////////   Time   ///////////////
@@ -94,8 +94,8 @@ void loop() {
   if(!rfid_mqtt_client.loop()){
     rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
   }
-
   checkAndPublishTag();
+  updateLEDs(subs[0].payload.toInt());
 }
 
 void checkAndPublishTag(){
@@ -112,15 +112,20 @@ void checkAndPublishTag(){
 
     //publish the uid read at the timestamp
   uid.toUpperCase();
+  Serial.print(uid);
   pubs[0].payload = uid + " @" + getTimestamp();
   rfid_mqtt_client.publish(pubs[0]);
     //wait a quarter second before reading and publishing another tag uid  
   delay(250); //TODO: determine correct delay
 }
 
-void updateLEDs(){
-    for(int i = 0; i < NUM_LEDS; i++){
+void updateLEDs(int numToShow){
+    numToShow = numToShow % (NUM_LEDS + 1);
+    for(int i = 0; i < numToShow; i++){
       leds[i] = CRGB::BlueViolet;
+    }
+    for(int i = numToShow; i < NUM_LEDS; i++){
+      leds[i] = CRGB::Black;
     }
     FastLED.show();
 }

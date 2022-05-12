@@ -16,8 +16,8 @@ bool newGameNeeded = true;
 
   //Comms
 #include <WiFi.h>
-const char * ssid = "Ponderosa";
-const char * password = "Zaq12wsx";
+const char * ssid = "";
+const char * password = "";
 WiFiClient client;
 //TODO: Rename to piControlServer
 const uint16_t pyGameServerPort = 2727;
