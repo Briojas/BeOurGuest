@@ -37,8 +37,11 @@ void readSubs(String &topic, String &payload){
 //General inits and defs
 MQTT_Client_Handler rfid_mqtt_client(mqtt_client, wifi_client, brokerName, subs, numSubs, readSubs, port); //initialize the mqtt handler
 String getTimestamp();
+  //PWM settings
+const int frequency = 30000;
+const int resolution = 8;
   //Initialize motors
-bool setMotorPins(int motor[4]);
+void setMotorPins(int motor[4]);
   //Kart control
 void setMotorPow(int powers[]);
 bool powAtDirForDur(double power, String dir, double dur, double startTime);
@@ -61,7 +64,7 @@ int FrontLeft[4] = {0, 27, 14, 18};
 int FrontRight[4] = {1, 13, 5, 12};
 int BackRight[4] = {2, 33, 21, 25};
 int BackLeft[4] = {3, 4, 2, 19};
-int wheels[4] = {FrontRight, FrontLeft, BackLeft, BackRight}
+int* wheels[4] = {FrontRight, FrontLeft, BackLeft, BackRight};
 int wheelPower[4]; //fr, fl, bl, br
 
 void setup() {
