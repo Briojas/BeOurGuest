@@ -4,7 +4,7 @@ import adapter
 job_run_id = 1
     #vehicle scripts
 script_cids = [
-    'bafybeidcuj7x347s2ekyicsu2udaime4dzwf7v5qob446pfspx3j765n7m'
+    'bafybeibvf5ckz3ztdtdksx4t3d5hxumnr45kryegkx3z3bg3dfhejwym6u'
 ]
 
 def adapter_setup(test_data):
