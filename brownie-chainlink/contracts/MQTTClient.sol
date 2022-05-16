@@ -6,6 +6,8 @@ import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 
 contract MQTTClient is ChainlinkClient, ConfirmedOwner{
     using Chainlink for Chainlink.Request;
+
+    
     string public data_string;
     uint256 public data_int;
     //uint256 public data_float;
@@ -20,7 +22,7 @@ contract MQTTClient is ChainlinkClient, ConfirmedOwner{
      * Network: Kovan
      * Oracle: 0xEcA7eD4a7e36c137F01f5DAD098e684882c8cEF3
      * Job IDs: below
-     * Fee: 1 LINK
+     * Fee: 0.1 LINK
      */
     constructor() ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();

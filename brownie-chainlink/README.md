@@ -1,42 +1,5 @@
 # chainlink-mix
 
-> NOTE: This has been recently updated for better compatibility with local blockchains. Check out the scripts to learn more.
-
-
-<br/>
-<p align="center">
-<a href="https://chain.link" target="_blank">
-<img src="./img/chainlink-brownie.png" width="225" alt="Chainlink Brownie logo">
-</a>
-</p>
-<br/>
-
-[![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/smartcontractkit/chainlink-mix.svg)](http://isitmaintained.com/project/smartcontractkit/chainlink-mix "Average time to resolve an issue")
-[![Percentage of issues still open](http://isitmaintained.com/badge/open/smartcontractkit/chainlink-mix.svg)](http://isitmaintained.com/project/smartcontractkit/chainlink-mix "Percentage of issues still open")
-
-This is a repo to work with and use Chainlink smart contracts in a python environment. If you're brand new to Chainlink, check out the beginner walk-through in remix to [learn the basics.](https://docs.chain.link/docs/beginners-tutorial)
-
-You can also check out the more advanced Chainlink tutorials there as well.
-
-- [chainlink-mix](#chainlink-mix)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Testnet Development](#testnet-development)
-  - [Local Development](#local-development)
-  - [Running Scripts and Deployment](#running-scripts-and-deployment)
-    - [Chainlink Price Feeds](#chainlink-price-feeds)
-    - [Chainlink VRF](#chainlink-vrf)
-    - [Chainlink API Call](#chainlink-api-call)
-    - [Chainlink Keeper Deployment](#chainlink-keeper-deployment)
-    - [Local Development](#local-development-1)
-  - [Testing](#testing)
-    - [To test development / local](#to-test-development--local)
-    - [To test mainnet-fork](#to-test-mainnet-fork)
-    - [To test a testnet](#to-test-a-testnet)
-  - [Adding additional Chains](#adding-additional-chains)
-  - [Linting](#linting)
-  - [Resources](#resources)
-  - [License](#license)
 
 ## Prerequisites
 
@@ -46,33 +9,18 @@ Please install or have installed the following:
 - [python](https://www.python.org/downloads/)
 ## Installation
 
-1. [Install Brownie](https://eth-brownie.readthedocs.io/en/stable/install.html), if you haven't already. Here is a simple way to install brownie.
+[Install Brownie](https://eth-brownie.readthedocs.io/en/stable/install.html), if you haven't already. Here is a simple way to install brownie.
 
 
 ```bash
-python3 -m pip install --user pipx
-python3 -m pipx ensurepath
+pip install pipx
 # restart your terminal
 pipx install eth-brownie
 ```
 Or, if that doesn't work, via pip
 ```bash
 pip install eth-brownie
-```
-
-2. Download the mix and install dependencies.
-
-```bash
-brownie bake chainlink-mix
-cd chainlink-mix
 pip install -r requirements.txt
-```
-
-This will open up a new Chainlink project. Or, you can clone from source:
-
-```bash
-git clone https://github.com/PatrickAlphaC/chainlink-mix
-cd chainlink-mix
 ```
 
 ## Testnet Development
