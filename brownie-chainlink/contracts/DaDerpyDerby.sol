@@ -10,7 +10,9 @@ struct submission {
         uint key_index; //storage position in the queue array
         uint queue_index; //position in the queue for execution
         bytes32[2] script_cid; //script IPFS CID broken into halves
-        bool executed; //sent for execution
+        bytes32 executed_id; //sent for execution
+        bytes32 collect_score_id;
+        bytes32 clear_score_id;
         uint score; //score after execution finished
     }
 
@@ -22,17 +24,23 @@ struct KeyFlag {
 struct queue { 
     mapping(uint => submission) data;
     KeyFlag[] keys;
-    uint queue_ticket_no;
-    uint next_task;
+    uint tickets;
+    uint next_ticket;
+    uint active_key;
 }
 
 type Iterator is uint;
 
-library queueManagement {
+library queue_management {
+    function initiate(submission storage self) internal {
+        self.tickets = 0; //will increment to 1 after first submission
+        self.next_ticket = 1; //starts at first ticket submitted
+    }
+
     function insert(submission storage self, uint key, bytes32 script_cid_1, bytes32 script_cid_2) internal returns (bool replaced) {
         uint key_index = self.data[key].key_index;
-        self.queue_ticket_no = self.queue_ticket_no + 1;
-        self.data[key].queue_index = self.queue_ticket_no;
+        self.tickets ++;
+        self.data[key].queue_index = self.tickets;
         self.data[key].script_cid[0] = script_cid_1;
         self.data[key].script_cid[1] = script_cid_2;
         self.data[key].executed = false;
@@ -57,29 +65,40 @@ library queueManagement {
         return true;
     }
 
-    function contains(submission storage self, uint key) internal view returns (bool) {
-        return self.data[key].key_index > 0;
+    function find_next_ticket(submission storage self) internal view returns (uint key) {
+        for(
+            Iterator key = iterate_start(self);
+            iterate_valid(self, key);
+            key = iterate_next(self, key)
+        ){
+            if(!self.data[key].executed && self.next_ticket == self.data[key].queue_index){
+                return Iterator.unwrap(key);
+            }
+        }
     }
 
-    function iterateStart(submission storage self) internal view returns (Iterator) {
-        return iteratorSkipDeleted(self, 0);
+    function assign_active_key(submission storage self, uint key) internal {
+        //note: assing active_key to current submission being processed
     }
 
-    function iterateValid(submission storage self, Iterator iterator) internal view returns (bool) {
+    function pull_ticket(submission storage self, uint key) internal view returns (string cid) {
+        self.data[key].executed = true;
+        cid = bytes32_array_to_string(self.data[key].script_cid);
+    }
+
+    function iterate_start(submission storage self) internal view returns (Iterator) {
+        return iterator_skip_deleted(self, 0);
+    }
+
+    function iterate_valid(submission storage self, Iterator iterator) internal view returns (bool) {
         return Iterator.unwrap(iterator) < self.keys.length;
     }
 
-    function iterateNext(submission storage self, Iterator iterator) internal view returns (Iterator) {
-        return iteratorSkipDeleted(self, Iterator.unwrap(iterator) + 1);
-    }
-        
-    function pull_next_ticket(submission storage self, uint key) internal view returns (uint key, uint value) {
-        uint key_index = self.data[key].key_index;
-        key = self.keys[key_index].key;
-        value = self.data[key].value;
+    function iterate_next(submission storage self, Iterator iterator) internal view returns (Iterator) {
+        return iterator_skip_deleted(self, Iterator.unwrap(iterator) + 1);
     }
 
-    function iteratorSkipDeleted(submission storage self, uint key_index) private view returns (Iterator) {
+    function iterator_skip_deleted(submission storage self, uint key_index) private view returns (Iterator) {
         while (key_index < self.keys.length && self.keys[key_index].deleted)
             key_index++;
         return Iterator.wrap(key_index);
@@ -90,6 +109,8 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     using Chainlink for Chainlink.Request;
 
         //game data
+    queue game;
+    using queue_management for queue;
     uint256 public daily_high_score;
     string private score_topic = "/score";
     
@@ -108,9 +129,10 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     constructor() ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();
         oracle = 0xEcA7eD4a7e36c137F01f5DAD098e684882c8cEF3;
-        jobId_ints =    "f485e865867047e3a6b6eefde9b3a600";
-        jobId_ipfs =    "";
-        fee = 1 * 10 ** 17;
+        jobId_ints = "f485e865867047e3a6b6eefde9b3a600";
+        jobId_ipfs = "";
+        fee = 0.1 * (10 ** 18);
+        game.initiate();
     }
 
     //note: drop queue functions here
@@ -118,8 +140,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     function join_queue() public {
 
     }
-        
-
+    
     /**
      * Chainlink requests to
             - send IPFS scripts to cl-ea-mqtt-relay for executing games (execute_sumbission)
@@ -127,20 +148,21 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
             - publish on game score topics for resetting score data between script executions (clear_score)
         on the MQTT broker(s) utilized by the Node's External Adapter managing the game's state.
      */
-    function execute_submission(submission calldata _submission) private returns (bytes32 requestId){
-        string calldata _action = "ipfs";
-        return call_cl_ea_mqtt_relay(_action, _topic, _qos, 0, 1);
+    function execute_submission() private {
+        string memory _action = "ipfs";
+        string memory _topic = "script";
+        string memory _payload = game.pull_ticket(key);
+        game.data[game.active_key].executed_id = call_cl_ea_mqtt_relay(_action, _topic, 0, _payload, 0); //qos and retained flags ignored
     }
-    function grab_score(string calldata _action, string calldata _topic, int16 _qos) private returns (bytes32 requestId){
+    function collect_score() private returns (bytes32 requestId){
         string calldata _action = "subscribe";
-        return call_cl_ea_mqtt_relay(_action, score_topic, 2, 0, 1);
+        game.data[game.active_key].collect_score_id = call_cl_ea_mqtt_relay(_action, score_topic, 2, 0, 0); //payload and retained flag ignored
     }
     function clear_score() private returns (bytes32 requestId){
         string calldata _action = "publish";
-        return call_cl_ea_mqtt_relay(_action, score_topic, 2, 0, 1);
+        game.data[game.active_key].clear_score_id = call_cl_ea_mqtt_relay(_action, score_topic, 2, 0, 1); //payload = 0
     }
-    function call_cl_ea_mqtt_relay(string calldata _action, string calldata _topic, int16 _qos, int256 _payload, int16 _retain) private returns (bytes32 requestId)
-    {
+    function call_cl_ea_mqtt_relay(string calldata _action, string calldata _topic, int16 _qos, int256 _payload, int16 _retain) private returns (bytes32 requestId){
         Chainlink.Request memory request = buildChainlinkRequest(jobId_ints, address(this), this.fulfill_int.selector);
         
         // Set the params for the external adapter
@@ -165,14 +187,22 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
     }
 
-    function stringToBytes32(string memory source) public pure returns (bytes32 result) {
-        bytes memory tempEmptyStringTest = bytes(source);
-        if (tempEmptyStringTest.length == 0) {
-            return 0x0;
+    function bytes32_array_to_string(bytes32[] data) returns (string) {
+        bytes memory bytes_string = new bytes(data.length * 32);
+        uint string_len;
+        for (uint i=0; i<data.length; i++) {
+            for (uint j=0; j<32; j++) {
+                bytes1 char = byte(bytes32(uint(data[i]) * 2 ** (8 * j)));
+                if (char != 0) {
+                    [string_len] = char;
+                    string_len += 1;
+                }
+            }
         }
-
-        assembly {
-            result := mload(add(source, 32))
+        bytes memory bytes_string_trimmed = new bytes(string_len);
+        for (i=0; i<string_len; i++) {
+            bytes_string_trimmed[i] = bytes_string[i];
         }
-    }
+        return string(bytes_string_trimmed);
+    }    
 }
