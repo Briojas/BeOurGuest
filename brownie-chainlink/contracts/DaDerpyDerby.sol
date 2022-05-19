@@ -6,46 +6,59 @@ import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 
     //using the "Iterable Mappings" Solidity example
-struct submission {
-        uint key_index; //storage position in the queue array
-        uint queue_index; //position in the queue for execution
-        bytes32[2] script_cid; //script IPFS CID broken into halves
-        bytes32 executed_id; //sent for execution
-        bytes32 collect_score_id;
-        bytes32 clear_score_id;
-        uint score; //score after execution finished
-    }
+struct Submission {
+    uint key_index; //storage position in the queue array
+    uint ticket_index; //position in the queue for execution
+    bytes32[2] script_cid; //script IPFS CID broken into halves
+    bytes32 executed_id; //sent for execution
+    bytes32 collect_score_id;
+    bytes32 clear_score_id;
+    uint score; //score after execution finished
+}
 
-struct KeyFlag { 
+struct Key_Flag { 
     uint key; 
     bool deleted;
-    }
+}
 
-struct queue { 
-    mapping(uint => submission) data;
-    KeyFlag[] keys;
-    uint tickets;
+struct Tickets {
+    uint num_tickets;
     uint next_ticket;
-    uint active_key;
+    uint next_ticket_key;
+}
+
+enum States {READY, SUBMITTING, COLLECTING, RESETTING}
+
+struct Queue { 
+    mapping(uint => Submission) data;
+    Key_Flag[] keys;
+    Tickets tickets;
+    States state;
 }
 
 type Iterator is uint;
 
-library queue_management {
-    function initiate(submission storage self) internal {
-        self.tickets = 0; //will increment to 1 after first submission
+struct High_Score {
+    uint immutable reset_interval;
+    uint score;
+    address leader;
+}
+
+library Queue_Management {
+    function initiate(Submission storage self) internal {
+        self.tickets.num_tickets = 0; //will increment to 1 after first Submission
         self.next_ticket = 1; //starts at first ticket submitted
+        self.state = States.READY;
     }
 
-    function insert(submission storage self, uint key, bytes32 script_cid_1, bytes32 script_cid_2) internal returns (bool replaced) {
+    function insert(Submission storage self, uint key, bytes32 script_cid_1, bytes32 script_cid_2) internal returns (bool replaced) {
         uint key_index = self.data[key].key_index;
-        self.tickets ++;
-        self.data[key].queue_index = self.tickets;
+        self.tickets.num_tickets ++;
+        self.data[key].ticket_index = self.tickets.num_tickets;
         self.data[key].script_cid[0] = script_cid_1;
         self.data[key].script_cid[1] = script_cid_2;
-        self.data[key].executed = false;
         if (key_index > 0){ //checks if key already existed, and was overwritten
-            self.keys[key_index].deleted = false; //a deleted submission overwritten should not be marked deleted
+            self.keys[key_index].deleted = false; //a deleted Submission overwritten should not be marked deleted
             return true;
         } else { //if key didn't exist, the queue array has grown
             key_index = self.keys.length;
@@ -56,7 +69,7 @@ library queue_management {
         }
     }
 
-    function remove(submission storage self, uint key) internal returns (bool success) {
+    function remove(Submission storage self, uint key) internal returns (bool success) {
         uint key_index = self.data[key].key_index;
         if (key_index == 0)
             return false;
@@ -65,40 +78,39 @@ library queue_management {
         return true;
     }
 
-    function find_next_ticket(submission storage self) internal view returns (uint key) {
+    function find_next_ticket(Submission storage self) internal view returns (uint key) {
         for(
             Iterator key = iterate_start(self);
             iterate_valid(self, key);
             key = iterate_next(self, key)
         ){
-            if(!self.data[key].executed && self.next_ticket == self.data[key].queue_index){
+            if(self.data[key].executed_id.length && self.tickets.next_ticket == self.data[key].ticket_index){
                 return Iterator.unwrap(key);
             }
         }
     }
 
-    function assign_active_key(submission storage self, uint key) internal {
-        //note: assing active_key to current submission being processed
+    function assign_next_ticket_key(Submission storage self, uint key) internal {
+        //note: assing active_key to current Submission being processed
     }
 
-    function pull_ticket(submission storage self, uint key) internal view returns (string cid) {
-        self.data[key].executed = true;
-        cid = bytes32_array_to_string(self.data[key].script_cid);
+    function pull_ticket(Submission storage self, uint key) internal view returns (string) {
+        return bytes32_array_to_string(self.data[key].script_cid);
     }
 
-    function iterate_start(submission storage self) internal view returns (Iterator) {
+    function iterate_start(Submission storage self) internal view returns (Iterator) {
         return iterator_skip_deleted(self, 0);
     }
 
-    function iterate_valid(submission storage self, Iterator iterator) internal view returns (bool) {
+    function iterate_valid(Submission storage self, Iterator iterator) internal view returns (bool) {
         return Iterator.unwrap(iterator) < self.keys.length;
     }
 
-    function iterate_next(submission storage self, Iterator iterator) internal view returns (Iterator) {
+    function iterate_next(Submission storage self, Iterator iterator) internal view returns (Iterator) {
         return iterator_skip_deleted(self, Iterator.unwrap(iterator) + 1);
     }
 
-    function iterator_skip_deleted(submission storage self, uint key_index) private view returns (Iterator) {
+    function iterator_skip_deleted(Submission storage self, uint key_index) private view returns (Iterator) {
         while (key_index < self.keys.length && self.keys[key_index].deleted)
             key_index++;
         return Iterator.wrap(key_index);
@@ -106,15 +118,14 @@ library queue_management {
 }
 
 contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwner{
-    using Chainlink for Chainlink.Request;
-
         //game data
-    queue game;
-    using queue_management for queue;
-    uint256 public daily_high_score;
+    Queue game;
+    using Queue_Management for Queue;
+    High_Score public high_score;
     string private score_topic = "/score";
     
         //node data
+    using Chainlink for Chainlink.Request;
     address private oracle;
     bytes32 private jobId_ints;
     bytes32 private jobId_ipfs;
@@ -126,17 +137,36 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
      * Job IDs: below
      * Fee: 0.1 LINK
      */
-    constructor() ConfirmedOwner(msg.sender) {
+    constructor(uint score_reset_interval) ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();
         oracle = 0xEcA7eD4a7e36c137F01f5DAD098e684882c8cEF3;
         jobId_ints = "f485e865867047e3a6b6eefde9b3a600";
         jobId_ipfs = "";
         fee = 0.1 * (10 ** 18);
         game.initiate();
+        high_score.reset_interval = score_reset_interval;
+    }
+
+    function checkUpkeep(bytes calldata checkData) external override returns (bool upkeepNeeded, bytes memory performData) {
+        upkeepNeeded = (block.timestamp - lastTimeStamp) > interval;
+
+        // We don't use the checkData in this example
+        // checkData was defined when the Upkeep was registered
+        performData = checkData;
+    }
+
+    function performUpkeep(bytes calldata performData) external override {
+        lastTimeStamp = block.timestamp;
+        counter = counter + 1;
+
+        // We don't use the performData in this example
+        // performData is generated by the Keeper's call to your `checkUpkeep` function
+        performData;
+        
     }
 
     //note: drop queue functions here
-        // need function iterating to grab deleted submissions and storing their indicies in an array
+        // need function iterating to grab deleted Submissions and storing their indicies in an array
     function join_queue() public {
 
     }
@@ -148,7 +178,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
             - publish on game score topics for resetting score data between script executions (clear_score)
         on the MQTT broker(s) utilized by the Node's External Adapter managing the game's state.
      */
-    function execute_submission() private {
+    function execute_Submission() private {
         string memory _action = "ipfs";
         string memory _topic = "script";
         string memory _payload = game.pull_ticket(key);
@@ -192,7 +222,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         uint string_len;
         for (uint i=0; i<data.length; i++) {
             for (uint j=0; j<32; j++) {
-                bytes1 char = byte(bytes32(uint(data[i]) * 2 ** (8 * j)));
+                bytes1 char = bytes(bytes32(uint(data[i]) * 2 ** (8 * j)));
                 if (char != 0) {
                     [string_len] = char;
                     string_len += 1;
