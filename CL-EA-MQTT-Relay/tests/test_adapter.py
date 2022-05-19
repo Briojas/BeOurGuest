@@ -29,6 +29,6 @@ def test_ipfs(vehicle_script_cids):
         # print(subtask)
         assert type(subtask['payload']['value']) is str
         if test_data['data']['topic'] == 'script':
-            assert result['result']['value'] == 'scripted'
+            assert type(result['result']['value']) is bool
         assert subtask['payload']['reporting'] >= 0.5
     assert type(result['result']) is dict

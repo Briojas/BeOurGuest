@@ -10,9 +10,7 @@ struct Submission {
     uint key_index; //storage position in the queue array
     uint ticket_index; //position in the queue for execution
     bytes32[2] script_cid; //script IPFS CID broken into halves
-    bytes32 executed_id; //sent for execution
-    bytes32 collect_score_id;
-    bytes32 clear_score_id;
+    bool executed; //sent for execution
     uint score; //score after execution finished
 }
 
@@ -23,8 +21,8 @@ struct Key_Flag {
 
 struct Tickets {
     uint num_tickets;
-    uint next_ticket;
-    uint next_ticket_key;
+    uint curr_ticket;
+    uint curr_ticket_key;
 }
 
 enum States {READY, SUBMITTING, COLLECTING, RESETTING}
@@ -47,7 +45,7 @@ struct High_Score {
 library Queue_Management {
     function initiate(Submission storage self) internal {
         self.tickets.num_tickets = 0; //will increment to 1 after first Submission
-        self.next_ticket = 1; //starts at first ticket submitted
+        self.curr_ticket = 1; //starts at first ticket submitted
         self.state = States.READY;
     }
 
@@ -57,6 +55,7 @@ library Queue_Management {
         self.data[key].ticket_index = self.tickets.num_tickets;
         self.data[key].script_cid[0] = script_cid_1;
         self.data[key].script_cid[1] = script_cid_2;
+        self.data[key].executed = false;
         if (key_index > 0){ //checks if key already existed, and was overwritten
             self.keys[key_index].deleted = false; //a deleted Submission overwritten should not be marked deleted
             return true;
@@ -78,19 +77,19 @@ library Queue_Management {
         return true;
     }
 
-    function find_next_ticket(Submission storage self) internal view returns (uint key) {
+    function get_curr_ticket_key(Submission storage self) internal view returns (uint key) {
         for(
             Iterator key = iterate_start(self);
             iterate_valid(self, key);
             key = iterate_next(self, key)
         ){
-            if(self.data[key].executed_id.length && self.tickets.next_ticket == self.data[key].ticket_index){
+            if(!self.data[key].executed && self.tickets.curr_ticket == self.data[key].ticket_index){
                 return Iterator.unwrap(key);
             }
         }
     }
 
-    function assign_next_ticket_key(Submission storage self, uint key) internal {
+    function assign_curr_ticket_key(Submission storage self, uint key) internal {
         //note: assing active_key to current Submission being processed
     }
 
@@ -179,18 +178,18 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         on the MQTT broker(s) utilized by the Node's External Adapter managing the game's state.
      */
     function execute_Submission() private {
-        string memory _action = "ipfs";
-        string memory _topic = "script";
-        string memory _payload = game.pull_ticket(key);
-        game.data[game.active_key].executed_id = call_cl_ea_mqtt_relay(_action, _topic, 0, _payload, 0); //qos and retained flags ignored
+        string memory action = "ipfs";
+        string memory topic = "script";
+        string memory payload = game.pull_ticket(key);
+        call_cl_ea_mqtt_relay(action, topic, 0, payload, 0); //qos and retained flags ignored
     }
     function collect_score() private returns (bytes32 requestId){
-        string calldata _action = "subscribe";
-        game.data[game.active_key].collect_score_id = call_cl_ea_mqtt_relay(_action, score_topic, 2, 0, 0); //payload and retained flag ignored
+        string calldata action = "subscribe";
+        call_cl_ea_mqtt_relay(action, score_topic, 2, 0, 0); //payload and retained flag ignored
     }
     function clear_score() private returns (bytes32 requestId){
-        string calldata _action = "publish";
-        game.data[game.active_key].clear_score_id = call_cl_ea_mqtt_relay(_action, score_topic, 2, 0, 1); //payload = 0
+        string calldata action = "publish";
+        call_cl_ea_mqtt_relay(action, score_topic, 2, 0, 1); //payload = 0
     }
     function call_cl_ea_mqtt_relay(string calldata _action, string calldata _topic, int16 _qos, int256 _payload, int16 _retain) private returns (bytes32 requestId){
         Chainlink.Request memory request = buildChainlinkRequest(jobId_ints, address(this), this.fulfill_int.selector);
@@ -205,7 +204,11 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         // Sends the request
         return sendChainlinkRequestTo(oracle, request, fee);
     }
-    function fulfill_int(bytes32 _requestId, uint256 returnInt) public recordChainlinkFulfillment(_requestId){
+    function fulfill_execution_request(bytes32 _requestId, uint256 returnInt) public recordChainlinkFulfillment(_requestId){
+        
+        data_int = returnInt;
+    }
+    function fulfill_score(bytes32 _requestId, uint256 returnInt) public recordChainlinkFulfillment(_requestId){
         data_int = returnInt;
     }
     function get_int() public view returns (uint256){

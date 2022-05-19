@@ -184,7 +184,9 @@ class Bridge(object):
         filename = site.text[(filenameStart + len(fileIdentifier)):(filenameEnd + len(fileType))]
         file = requests.get(url + '/' + filename).json()
         if subtask == 'script':
-            self.result = self.__script(file)      
+            self.result = self.__script(file)
+        else:
+            self.result = False   
 
     def __script(self, script):
         for action in script['script']:
@@ -202,7 +204,7 @@ class Bridge(object):
                         topic['qos'])
             if action['action'] == 'delay':
                 time.sleep(action['data'])
-        return 'scripted'
+        return True #TODO: add error catching
 
 
         
