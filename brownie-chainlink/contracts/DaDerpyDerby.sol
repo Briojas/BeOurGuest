@@ -9,7 +9,7 @@ import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 struct Submission {
     address payable player;
     uint key_index; //storage position in the queue array
-    uint ticket_index; //position in the queue for execution
+    uint ticket; //position in the queue for execution
     bytes[2] script_cid; //script IPFS CID broken into halves
     bool executed; //sent for execution
     uint score; //score after execution finished
@@ -54,7 +54,7 @@ library Queue_Management {
     function insert(Queue storage self, uint key, bytes calldata script_cid_1, bytes calldata script_cid_2) internal returns (bool replaced) {
         uint key_index = self.data[key].key_index;
         self.tickets.num_tickets ++;
-        self.data[key].ticket_index = self.tickets.num_tickets;
+        self.data[key].ticket = self.tickets.num_tickets;
         self.data[key].script_cid[0] = script_cid_1;
         self.data[key].script_cid[1] = script_cid_2;
         self.data[key].executed = false;
@@ -79,13 +79,17 @@ library Queue_Management {
         return true;
     }
 
+    function get_next_submission_key(Queue storage self) internal returns (uint key){
+        return Iterator.unwrap(iterator_find_next_deleted(self, 0));
+    }
+
     function set_curr_ticket_key(Queue storage self) internal {
         for(
             Iterator key = iterate_start(self);
             iterate_valid(self, key);
             key = iterate_next(self, key)
         ){
-            if(!self.data[Iterator.unwrap(key)].executed && self.tickets.curr_ticket == self.data[Iterator.unwrap(key)].ticket_index){
+            if(!self.data[Iterator.unwrap(key)].executed && self.tickets.curr_ticket == self.data[Iterator.unwrap(key)].ticket){
                 self.tickets.curr_ticket_key = Iterator.unwrap(key);
             }
         }
@@ -135,11 +139,17 @@ library Queue_Management {
             key_index++;
         return Iterator.wrap(key_index);
     }
+    
+    function iterator_find_next_deleted(Queue storage self, uint key_index) internal view returns (Iterator) {
+        while (key_index < self.keys.length && !self.keys[key_index].deleted)
+            key_index++;
+        return Iterator.wrap(key_index);
+    }
 }
 
 contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwner{
         //game data
-    Queue game;
+    Queue private game;
     using Queue_Management for Queue;
     High_Score public high_score;
     uint public last_time_stamp;
@@ -162,14 +172,17 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         setPublicChainlinkToken();
         oracle = 0xEcA7eD4a7e36c137F01f5DAD098e684882c8cEF3;
         job_id_pubsub_ints = "f485e865867047e3a6b6eefde9b3a600";
-        job_id_ipfs = "";
+        job_id_ipfs = "todo";
         fee = 0.1 * (10 ** 18);
         game.initiate();
         high_score.reset_interval = score_reset_interval;
+        high_score.score = 0;
+        high_score.leader = payable(0);
         last_time_stamp = block.timestamp;
     }
 
     function checkUpkeep(bytes calldata checkData) external override returns (bool upkeepNeeded, bytes memory performData) {
+            //high score may be reset while processing a submission
         upkeepNeeded = (block.timestamp - last_time_stamp) > high_score.reset_interval;
 
         if(game.state == States.READY){
@@ -190,9 +203,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         if((block.timestamp - last_time_stamp) > high_score.reset_interval){
             last_time_stamp = block.timestamp;
             award_winner();
-            //todo:
-            //  - search for list of executed submissions, and delete them using game.remove(key)
-            //  - generate list of deleted submissions for replacment when new entries are made
+            //todo: remove deleted keys from the end of the queue
         }
         if(game.state == States.READY && game.tickets.curr_ticket < game.tickets.num_tickets){
             game.tickets.curr_ticket ++;
@@ -202,17 +213,20 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         }else if(game.state == States.EXECUTED){
             collect_score();
         }else if(game.state == States.COLLECTED){
+            check_for_high_score();
             clear_score();
         }
     }
 
-        // need function iterating to grab deleted Submissions and storing their indicies in an array
-    function join_queue(bytes32 script_cid_1, bytes32 script_cid_2) public returns (uint ticket){
-
+        //todo: make join_queue payable for populating award pool
+    function join_queue(bytes calldata script_cid_1, bytes calldata script_cid_2) public returns (uint ticket){
+        uint next_key = game.get_next_submission_key();
+        game.insert(next_key, script_cid_1, script_cid_2);
+        return game.data[next_key].ticket; 
     }
 
     function estimated_wait(uint ticket) public returns (uint time_minutes){
-        //todo: user can get an estimated time for when a ticket is expected to execute
+        return 1;//todo: user can get an estimated time for when a ticket is expected to execute
     }
     
     /**
@@ -274,7 +288,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
             return sendChainlinkRequestTo(oracle, request, fee);
     }
     function fulfill_execution_request(bytes32 _requestId, bool status) public recordChainlinkFulfillment(_requestId){
-        //todo: error catching on non-executed statuses
+        //todo: error catching on failed execution statuses
         game.update_execution_status(status);
         game.update_state();
     }
@@ -284,6 +298,13 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
             game.update_score(score);
         }
         game.update_state();
+    }
+
+    function check_for_high_score() private {
+        if(game.data[game.tickets.curr_ticket_key].score > high_score.score){
+            high_score.score = game.data[game.tickets.curr_ticket_key].score;
+            high_score.leader = game.data[game.tickets.curr_ticket_key].player;
+        }
     }
 
     function award_winner() private {
