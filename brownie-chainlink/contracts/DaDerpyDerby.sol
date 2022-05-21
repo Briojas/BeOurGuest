@@ -83,16 +83,20 @@ library Queue_Management {
         return Iterator.unwrap(iterator_find_next_deleted(self, 0));
     }
 
-    function set_curr_ticket_key(Queue storage self) internal {
+    function find_ticket_key(Queue storage self, uint ticket) internal returns (uint key){
         for(
             Iterator key = iterate_start(self);
             iterate_valid(self, key);
             key = iterate_next(self, key)
         ){
-            if(!self.data[Iterator.unwrap(key)].executed && self.tickets.curr_ticket == self.data[Iterator.unwrap(key)].ticket){
-                self.tickets.curr_ticket_key = Iterator.unwrap(key);
+            if(!self.data[Iterator.unwrap(key)].executed && ticket == self.data[Iterator.unwrap(key)].ticket){
+                return Iterator.unwrap(key);
             }
         }
+    }
+
+    function set_curr_ticket_key(Queue storage self) internal {
+        self.tickets.curr_ticket_key = find_ticket_key(self, self.tickets.curr_ticket);
     }
 
     function pull_ticket(Queue storage self) internal view returns (string memory) {
@@ -203,7 +207,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         if((block.timestamp - last_time_stamp) > high_score.reset_interval){
             last_time_stamp = block.timestamp;
             award_winner();
-            //todo: remove deleted keys from the end of the queue
+            //todo: remove deleted keys from the end of the queue 
         }
         if(game.state == States.READY && game.tickets.curr_ticket < game.tickets.num_tickets){
             game.tickets.curr_ticket ++;
@@ -218,11 +222,17 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         }
     }
 
-        //todo: make join_queue payable for populating award pool
+        //todo: make join_queue payable for populating award pool?
     function join_queue(bytes calldata script_cid_1, bytes calldata script_cid_2) public returns (uint ticket){
         uint next_key = game.get_next_submission_key();
         game.insert(next_key, script_cid_1, script_cid_2);
         return game.data[next_key].ticket; 
+    }
+
+    function check_ticket(uint ticket) public view returns (bool status, uint score){
+        uint ticket_key = game.find_ticket_key(ticket);
+        status = game.data[ticket_key].executed;
+        score = game.data[ticket_key].score;
     }
 
     function estimated_wait(uint ticket) public returns (uint time_minutes){

@@ -1,0 +1,24 @@
+{
+    "script":[
+        {
+            "action": "publish",
+            "data":[{
+                "topic": "/kart/fl",
+                "payload": 25,
+                "qos": 0,
+                "retain": true
+            }]
+        },{
+            "action": "delay",
+            "data": 1
+        },{
+            "action": "publish",
+            "data":[{
+                "topic": "/kart/fl",
+                "payload": 0,
+                "qos": 0,
+                "retain": true
+            }]
+        }
+    ]
+}
