@@ -26,7 +26,7 @@ struct Tickets {
     uint curr_ticket_key;
 }
 
-enum States {READY, EXECUTED, COLLECTED}
+enum States {READY, SUBMITTED, EXECUTED, COLLECTED}
 
 struct Queue { 
     mapping(uint => Submission) data;
@@ -36,7 +36,7 @@ struct Queue {
 }
 
 struct High_Score {
-    uint immutable reset_interval;
+    uint reset_interval;
     uint score;
     address payable leader;
     //todo: add growing pool of tokens here to award leader after reset interval rolls over
@@ -45,13 +45,13 @@ struct High_Score {
 type Iterator is uint;
 
 library Queue_Management {
-    function initiate(Submission storage self) internal {
+    function initiate(Queue storage self) internal {
         self.tickets.num_tickets = 0; //will increment to 1 after first Submission
-        self.curr_ticket = 0; //first ticket submitted will be ticket 1
+        self.tickets.curr_ticket = 0; //first ticket submitted will be ticket 1
         self.state = States.READY;
     }
 
-    function insert(Submission storage self, uint key, bytes32 script_cid_1, bytes32 script_cid_2) internal returns (bool replaced) {
+    function insert(Queue storage self, uint key, bytes32 script_cid_1, bytes32 script_cid_2) internal returns (bool replaced) {
         uint key_index = self.data[key].key_index;
         self.tickets.num_tickets ++;
         self.data[key].ticket_index = self.tickets.num_tickets;
@@ -70,7 +70,7 @@ library Queue_Management {
         }
     }
 
-    function remove(Submission storage self, uint key) internal returns (bool success) {
+    function remove(Queue storage self, uint key) internal returns (bool success) {
         uint key_index = self.data[key].key_index;
         if (key_index == 0)
             return false;
@@ -79,56 +79,77 @@ library Queue_Management {
         return true;
     }
 
-    function set_curr_ticket_key(Submission storage self) internal {
+    function set_curr_ticket_key(Queue storage self) internal {
         for(
             Iterator key = iterate_start(self);
             iterate_valid(self, key);
             key = iterate_next(self, key)
         ){
-            if(!self.data[key].executed && self.tickets.curr_ticket == self.data[key].ticket_index){
-                self.data.tickets.curr_ticket_key = Iterator.unwrap(key);
+            if(!self.data[Iterator.unwrap(key)].executed && self.tickets.curr_ticket == self.data[Iterator.unwrap(key)].ticket_index){
+                self.tickets.curr_ticket_key = Iterator.unwrap(key);
             }
         }
     }
 
-    function pull_ticket(Submission storage self) internal view returns (string) {
-        return bytes32_array_to_string(self.data[self.data.tickets.curr_ticket_key].script_cid);
+    function pull_ticket(Queue storage self) internal view returns (string memory) {
+        return bytes32_array_to_string(self.data[self.tickets.curr_ticket_key].script_cid);
     }
 
-    function update_state(Submission storage self) internal {
-        if(self.state == READY){
-            self.state = EXECUTED;
-        }else if(self.state == EXECUTED){
-            self.state = COLLECTED;
-        }else if(self.state == COLLECTED){
-            self.state = READY;
+    function update_state(Queue storage self) internal {
+        if(self.state == States.READY){
+            self.state = States.SUBMITTED;
+        }else if(self.state == States.SUBMITTED){
+            self.state = States.EXECUTED;
+        }else if(self.state == States.EXECUTED){
+            self.state = States.COLLECTED;
+        }else if(self.state == States.COLLECTED){
+            self.state = States.READY;
         }
     }
 
-    function update_execution_status(Submission storage self, bool status) internal {
-        self.data[self.data.tickets.curr_ticket].executed = status;
+    function update_execution_status(Queue storage self, bool status) internal {
+        self.data[self.tickets.curr_ticket].executed = status;
     }
 
-    function update_score(Submission storage self, uint score) internal {
-        self.data[self.data.tickets.curr_ticket].score = score;
+    function update_score(Queue storage self, uint score) internal {
+        self.data[self.tickets.curr_ticket].score = score;
     }
 
-    function iterate_start(Submission storage self) internal view returns (Iterator) {
+    function iterate_start(Queue storage self) internal view returns (Iterator) {
         return iterator_skip_deleted(self, 0);
     }
 
-    function iterate_valid(Submission storage self, Iterator iterator) internal view returns (bool) {
+    function iterate_valid(Queue storage self, Iterator iterator) internal view returns (bool) {
         return Iterator.unwrap(iterator) < self.keys.length;
     }
 
-    function iterate_next(Submission storage self, Iterator iterator) internal view returns (Iterator) {
+    function iterate_next(Queue storage self, Iterator iterator) internal view returns (Iterator) {
         return iterator_skip_deleted(self, Iterator.unwrap(iterator) + 1);
     }
 
-    function iterator_skip_deleted(Submission storage self, uint key_index) private view returns (Iterator) {
+    function iterator_skip_deleted(Queue storage self, uint key_index) internal view returns (Iterator) {
         while (key_index < self.keys.length && self.keys[key_index].deleted)
             key_index++;
         return Iterator.wrap(key_index);
+    }
+
+    function bytes32_array_to_string(bytes32[2] memory data) internal returns (string memory) {
+        bytes memory bytes_string = new bytes(data.length * 32);
+        uint string_len;
+        for (uint i = 0; i < data.length; i++) {
+            for (uint j = 0; j < 32; j++) {
+                bytes1 char = bytes(bytes32(uint(data[i]) * 2 ** (8 * j)));
+                if (char != 0) {
+                    [string_len] = char;
+                    string_len += 1;
+                }
+            }
+        }
+        bytes memory bytes_string_trimmed = new bytes(string_len);
+        for (uint i = 0; i < string_len; i++) {
+            bytes_string_trimmed[i] = bytes_string[i];
+        }
+        return string(bytes_string_trimmed);
     }
 }
 
@@ -165,13 +186,15 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     }
 
     function checkUpkeep(bytes calldata checkData) external override returns (bool upkeepNeeded, bytes memory performData) {
-        upkeepNeeded = (block.timestamp - last_time_step) > high_score.reset_interval;
+        upkeepNeeded = (block.timestamp - last_time_stamp) > high_score.reset_interval;
 
-        if(self.state == READY){
+        if(game.state == States.READY){
             upkeepNeeded = game.tickets.curr_ticket < game.tickets.num_tickets;
-        }else if(self.state == EXECUTED){
+        //note: no checks for States.SUBMITTED, becuase Fulfillment() should enact the state change to States.EXECUTED
+        //todo: utilize States.SUBMITTED to monitor for execution failures
+        }else if(game.state== States.EXECUTED){
             upkeepNeeded = true;
-        }else if(self.state == COLLECTED){
+        }else if(game.state == States.COLLECTED){
             upkeepNeeded = true;
         }
         performData = checkData; //unused. separated logic executed based on internal states
@@ -180,20 +203,21 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     function performUpkeep(bytes calldata performData) external override {
         performData; //unused. see above
 
-        if((block.timestamp - last_time_step) > high_score.reset_interval){
-            last_time_step = block.timestamp;
+        if((block.timestamp - last_time_stamp) > high_score.reset_interval){
+            last_time_stamp = block.timestamp;
             award_winner();
             //todo:
             //  - search for list of executed submissions, and delete them using game.remove(key)
             //  - generate list of deleted submissions for replacment when new entries are made
         }
-        if(self.state == READY && game.tickets.curr_ticket < game.tickets.num_tickets){
+        if(game.state == States.READY && game.tickets.curr_ticket < game.tickets.num_tickets){
             game.tickets.curr_ticket ++;
             game.set_curr_ticket_key();
             execute_submission();
-        }else if(self.state == EXECUTED){
+        //note: see above for States.SUBMITTED notes
+        }else if(game.state == States.EXECUTED){
             collect_score();
-        }else if(self.state == COLLECTED){
+        }else if(game.state == States.COLLECTED){
             clear_score();
         }
     }
@@ -203,7 +227,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
 
     }
 
-    function estimated_wait(uint calldata ticket) public returns (uint time_minutes){
+    function estimated_wait(uint ticket) public returns (uint time_minutes){
         //todo: user can get an estimated time for when a ticket is expected to execute
     }
     
@@ -215,52 +239,72 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         on the MQTT broker(s) utilized by the Node's External Adapter managing the game's state.
      */
     function execute_submission() private returns (bytes32 requestId){
-        string memory action = "ipfs";
         string memory topic = "script";
         string memory payload = game.pull_ticket();
         game.update_state();
-        return call_cl_ea_mqtt_relay(job_id_ipfs, action, topic, 0, payload, 0); //qos and retained flags ignored
+        return call_ipfs(topic, payload); //qos and retained flags ignored
     }
     function collect_score() private returns (bytes32 requestId){
-        string calldata action = "subscribe";
-        return call_cl_ea_mqtt_relay(job_id_pubsub_ints, action, score_topic, 2, 0, 0); //payload and retained flag ignored
+        string memory action = "subscribe";
+        return call_pubsub_ints(action, score_topic, 2, 0, 0); //payload and retained flag ignored
     }
     function clear_score() private returns (bytes32 requestId){
-        string calldata action = "publish";
-        return call_cl_ea_mqtt_relay(job_id_pubsub_ints, action, score_topic, 2, 0, 1); //payload = 0, retained = 1(true)
+        string memory action = "publish";
+        return call_pubsub_ints(action, score_topic, 2, 0, 1); //payload = 0, retained = 1(true)
     }
-    function call_cl_ea_mqtt_relay(
-        bytes32 calldata _job_id,
-        string calldata _action, 
-        string calldata _topic, 
+    function call_pubsub_ints(
+        string memory _action, 
+        string memory _topic, 
         int16 _qos, 
         int256 _payload, 
         int16 _retain
         ) private returns (bytes32 requestId){
-            Chainlink.Request memory request = buildChainlinkRequest(_job_id, address(this), this.fulfill_int.selector);
+            Chainlink.Request memory request = buildChainlinkRequest(job_id_pubsub_ints, address(this), this.fulfill_score.selector);
+            
             // Set the params for the external adapter
-            request.add("action", _action); //options: "publish", "subscribe", "ipfs"
+            request.add("action", _action); //options: "publish", "subscribe"
             request.add("topic", _topic);
             request.addInt("qos", _qos);
             request.addInt("payload", _payload);
             request.addInt("retain", _retain);
+            
+            // Sends the request
+            return sendChainlinkRequestTo(oracle, request, fee);
+    }
+    function call_ipfs( 
+        string memory _topic, 
+        string memory _payload
+        ) private returns (bytes32 requestId){
+            string memory action = "ipfs";
+            
+            Chainlink.Request memory request = buildChainlinkRequest(job_id_ipfs, address(this), this.fulfill_execution_request.selector);
+            
+            // Set the params for the external adapter
+            request.add("action", action); //"ipfs"
+            request.add("topic", _topic); //subtasks: "script"
+            //request.addInt("qos", _qos); //unused
+            request.add("payload", _payload); //IPFS CID
+            //request.addInt("retain", _retain); //unused
+            
             // Sends the request
             return sendChainlinkRequestTo(oracle, request, fee);
     }
     function fulfill_execution_request(bytes32 _requestId, bool status) public recordChainlinkFulfillment(_requestId){
-        game.update_state();
+        //todo: error catching on non-executed statuses
         game.update_execution_status(status);
+        game.update_state();
     }
     function fulfill_score(bytes32 _requestId, uint256 score) public recordChainlinkFulfillment(_requestId){
-        game.update_state();
-        if(game.state == COLLECTED){
+        //todo: error catching on fails to pubsub scores
+        if(game.state == States.COLLECTED){
             game.update_score(score);
         }
+        game.update_state();
     }
 
     function award_winner() private {
         //todo: award pool to winner before resetting current leader and current high score
-        high_score.leader = address(0);
+        high_score.leader = payable(0);
         high_score.score = 0;
     }
 
@@ -268,23 +312,4 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
     }
-
-    function bytes32_array_to_string(bytes32[] data) returns (string) {
-        bytes memory bytes_string = new bytes(data.length * 32);
-        uint string_len;
-        for (uint i=0; i<data.length; i++) {
-            for (uint j=0; j<32; j++) {
-                bytes1 char = bytes(bytes32(uint(data[i]) * 2 ** (8 * j)));
-                if (char != 0) {
-                    [string_len] = char;
-                    string_len += 1;
-                }
-            }
-        }
-        bytes memory bytes_string_trimmed = new bytes(string_len);
-        for (i=0; i<string_len; i++) {
-            bytes_string_trimmed[i] = bytes_string[i];
-        }
-        return string(bytes_string_trimmed);
-    }    
 }
