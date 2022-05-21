@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.12;
 
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
 import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
@@ -10,7 +10,7 @@ struct Submission {
     address payable player;
     uint key_index; //storage position in the queue array
     uint ticket_index; //position in the queue for execution
-    bytes32[2] script_cid; //script IPFS CID broken into halves
+    bytes[2] script_cid; //script IPFS CID broken into halves
     bool executed; //sent for execution
     uint score; //score after execution finished
 }
@@ -51,7 +51,7 @@ library Queue_Management {
         self.state = States.READY;
     }
 
-    function insert(Queue storage self, uint key, bytes32 script_cid_1, bytes32 script_cid_2) internal returns (bool replaced) {
+    function insert(Queue storage self, uint key, bytes calldata script_cid_1, bytes calldata script_cid_2) internal returns (bool replaced) {
         uint key_index = self.data[key].key_index;
         self.tickets.num_tickets ++;
         self.data[key].ticket_index = self.tickets.num_tickets;
@@ -92,7 +92,10 @@ library Queue_Management {
     }
 
     function pull_ticket(Queue storage self) internal view returns (string memory) {
-        return bytes32_array_to_string(self.data[self.tickets.curr_ticket_key].script_cid);
+        string memory script_cid_1 = string(self.data[self.tickets.curr_ticket_key].script_cid[0]);
+        string memory script_cid_2 = string(self.data[self.tickets.curr_ticket_key].script_cid[1]);
+
+        return string.concat(script_cid_1, script_cid_2);
     }
 
     function update_state(Queue storage self) internal {
@@ -131,25 +134,6 @@ library Queue_Management {
         while (key_index < self.keys.length && self.keys[key_index].deleted)
             key_index++;
         return Iterator.wrap(key_index);
-    }
-
-    function bytes32_array_to_string(bytes32[2] memory data) internal returns (string memory) {
-        bytes memory bytes_string = new bytes(data.length * 32);
-        uint string_len;
-        for (uint i = 0; i < data.length; i++) {
-            for (uint j = 0; j < 32; j++) {
-                bytes1 char = bytes(bytes32(uint(data[i]) * 2 ** (8 * j)));
-                if (char != 0) {
-                    [string_len] = char;
-                    string_len += 1;
-                }
-            }
-        }
-        bytes memory bytes_string_trimmed = new bytes(string_len);
-        for (uint i = 0; i < string_len; i++) {
-            bytes_string_trimmed[i] = bytes_string[i];
-        }
-        return string(bytes_string_trimmed);
     }
 }
 
