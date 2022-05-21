@@ -6,7 +6,7 @@ from scripts.helpful_scripts import fund_with_link, get_account
 def main():
     account = get_account()
     derby_contract = DaDerpyDerby[-1]
-    #derby_contract.address = 0x539cBD70eaab57D1C3ae0D61FBD9AC742e7Ba953 #latest valid contract address
+    #derby_contract.address = 0xA4ce654aEe82615e24A65B2613FAA29124916fDb #latest valid contract address
     script_cids = [
         'bafybeifuwwpnax3l6u3ymhuywqpqj2bsaswbcacfnjbn3fjbtloq7m7buy',
         'bafybeigkweundbmw7sykcdkavtry62cmyhtqxqqge42oish3aga65ulpua',

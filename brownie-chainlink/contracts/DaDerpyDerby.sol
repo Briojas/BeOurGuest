@@ -83,7 +83,7 @@ library Queue_Management {
         return Iterator.unwrap(iterator_find_next_deleted(self, 0));
     }
 
-    function find_ticket_key(Queue storage self, uint ticket) internal returns (uint key){
+    function find_ticket_key(Queue storage self, uint ticket) internal returns (uint goal_key){
         for(
             Iterator key = iterate_start(self);
             iterate_valid(self, key);
@@ -229,7 +229,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         return game.data[next_key].ticket; 
     }
 
-    function check_ticket(uint ticket) public view returns (bool status, uint score){
+    function check_ticket(uint ticket) public returns (bool status, uint score){
         uint ticket_key = game.find_ticket_key(ticket);
         status = game.data[ticket_key].executed;
         score = game.data[ticket_key].score;
