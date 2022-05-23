@@ -189,21 +189,26 @@ class Bridge(object):
             self.result = False   
 
     def __script(self, script):
-        for action in script['script']:
-            if action['action'] == 'publish':
-                for topic in action['data']:
-                    self.client.publish(
-                        topic['topic'],
-                        topic['payload'],
-                        topic['qos'],
-                        topic['retain'])
-            if action['action'] == 'subscribe':
-                for topic in action['data']:
-                    self.client.subscribe(
-                        topic['topic'],
-                        topic['qos'])
-            if action['action'] == 'delay':
-                time.sleep(action['data'])
+        game_start = time.time()
+            #TODO: Make game_length a parameter fed to the external adapter?
+        game_length = 3 * 60 # scripts execute for 3 minutes
+        while(time.time() - game_start <= game_length):
+            for action in script['script']:
+                if action['action'] == 'publish':
+                    for topic in action['data']:
+                        if 'score' not in topic['topic']: #ignore any attempts to publish directly to scoring topics...
+                            self.client.publish(
+                                topic['topic'],
+                                topic['payload'],
+                                topic['qos'],
+                                topic['retain'])
+                if action['action'] == 'subscribe':
+                    for topic in action['data']:
+                        self.client.subscribe(
+                            topic['topic'],
+                            topic['qos'])
+                if action['action'] == 'delay':
+                    time.sleep(action['data'])
         return True #TODO: add error catching
 
 
