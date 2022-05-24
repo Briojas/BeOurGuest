@@ -4,7 +4,7 @@ import adapter
 job_run_id = 1
     #vehicle scripts
 script_cids = [
-    'bafybeibvf5ckz3ztdtdksx4t3d5hxumnr45kryegkx3z3bg3dfhejwym6u'
+    'bafybeidqzb7nkhfcvv55ibuudginz3u7d6d7vgoohh45zdgtppdy7njrby'
 ]
 
 def adapter_setup(test_data):
@@ -22,7 +22,7 @@ def test_ipfs(vehicle_script_cids):
             'payload': vehicle_script_cids, 
     }}
     result = adapter_setup(test_data)
-    # print(result) #Debugging
+    print(result) #Debugging
     assert result['statusCode'] == 200
     assert result['jobRunID'] == job_run_id
     for subtask in result['data']:

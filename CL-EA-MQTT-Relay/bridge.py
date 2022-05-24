@@ -37,7 +37,7 @@ class Bridge(object):
 
     def __on_message(self, client, userdata, message): 
         for topic in self.messages:
-            if topic['topic'] == message.topic:
+            if 'topic' in topic and topic['topic'] == message.topic:
                 received = str(message.payload, 'UTF-8')
                 try:
                     received = int(received)
@@ -135,8 +135,8 @@ class Bridge(object):
 
     def __get_data_on(self, topic):
         for message in self.messages:
-            if topic == message.topic:
-                return message.payload
+            if topic == message['topic']:
+                return message['payload']
         return None
     
     def subscribe(self, data):
@@ -174,10 +174,6 @@ class Bridge(object):
     def ipfs(self, data):
         subtask = data['topic']
         cid = data['payload']
-        self.messages.append({
-            'topic': subtask,
-            'payload': cid
-        })
         url = 'https://ipfs.io/ipfs/' + cid
         site = requests.get(url)
             #find the file
@@ -190,27 +186,25 @@ class Bridge(object):
         if subtask == 'script':
             self.result = self.__script(file)
         else:
-            self.result = False   
+            self.result = False
+        self.messages = [{ #assuming only one script is executed at a time... for now
+            'topic': subtask,
+            'payload': cid}]
 
     def __script(self, script):
         game_start = time.time()
             #TODO: Make game_length a parameter fed to the external adapter?
-        game_length = 3 * 60 # scripts execute for 3 minutes
+        # game_length = 3 * 60 # scripts execute for 3 minutes
+        game_length = 3 * 6
         while(time.time() - game_start <= game_length):
             for action in script['script']:
                 if action['action'] == 'publish':
                     for topic in action['data']:
                         if 'score' not in topic['topic']: #ignore any attempts to publish directly to scoring topics...
-                            self.client.publish(
-                                topic['topic'],
-                                topic['payload'],
-                                topic['qos'],
-                                topic['retain'])
+                            self.publish(topic)
                 if action['action'] == 'subscribe':
                     for topic in action['data']:
-                        self.client.subscribe(
-                            topic['topic'],
-                            topic['qos'])
+                        self.subscribe(topic)
                 if action['action'] == 'delay':
                     time.sleep(action['data'])
         self.__collect_publish_scores()
@@ -221,38 +215,46 @@ class Bridge(object):
     def __collect_publish_scores(self):
         score = 0
         for device in self.scoring_element_names:
-            device_score_topic = '/' + device + '/score'
-            device_data = {
-                'topic': device_score_topic,
+            device_score_data = {
+                'topic': '/' + device + '/score',
                 'qos': 2
             }
-            self.subscribe(device_data)
-            score = score + int(self.__get_data_on(device_score_topic))
-        self.client.publish(
-            '/score',
-            str(score),
-            2,
-            True)
+            self.subscribe(device_score_data)
+            score_piece = self.__get_data_on(device_score_data['topic'])
+            if score_piece is int:
+                score = score + score_piece
+            elif score_piece is str:
+                score = score + int(score_piece)
+        score_data = {
+                'topic': '/score',
+                'payload': str(score),
+                'qos': 2,
+                'retain': 1
+            }
+        self.publish(score_data)
 
     def __reset_game(self): 
         #TODO: use sensors on vehicles and field to place game into reset position
         motors = [
-            '/kart_1/fr',
-            '/kart_1/fl',
-            '/kart_1/bl',
-            '/kart_1/br']
+            '/derby_kart/fr',
+            '/derby_kart/fl',
+            '/derby_kart/bl',
+            '/derby_kart/br']
         for motor_topic in motors:
-            self.client.publish(
-                motor_topic,
-                0,
-                2,
-                True)
+            motor_data = {
+                'topic': motor_topic,
+                'payload': 0,
+                'qos': 2,
+                'retain': 1
+            }
+            self.publish(motor_data)
 
     def __clear_element_scores(self):
         for device in self.scoring_element_names:
-            device_score_topic = '/' + device + '/score'
-            self.client.publish(
-                device_score_topic,
-                '0',
-                2,
-                True)
+            device_score_data = {
+                'topic': '/' + device + '/score',
+                'payload': '0',
+                'qos': 2,
+                'retain': 1
+            }
+            self.publish(device_score_data)

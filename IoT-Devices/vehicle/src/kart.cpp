@@ -19,10 +19,10 @@ WiFiClientSecure wifi_client;
 #include <mqttLogin.h>
 MQTTClient mqtt_client;
 const int port = 8883;
-const char clientName[] = "kart_1"; //to be String 'deviceName' in setup()
+const char clientName[] = "derby_kart"; //must be >= 8 chars
 const int numPubs = 1;
 mqtt_pubSubDef_t pubs[numPubs];
-const int numSubs = 1;
+const int numSubs = 4;
 mqtt_pubSubDef_t subs[numSubs];
 void readSubs(String &topic, String &payload){
     Serial.println("incoming: " + topic + " - " + payload);
@@ -35,7 +35,7 @@ void readSubs(String &topic, String &payload){
 }
 
 //General inits and defs
-MQTT_Client_Handler rfid_mqtt_client(mqtt_client, wifi_client, brokerName, subs, numSubs, readSubs, port); //initialize the mqtt handler
+MQTT_Client_Handler kart_mqtt_client(mqtt_client, wifi_client, brokerName, subs, numSubs, readSubs, port); //initialize the mqtt handler
 String getTimestamp();
   //PWM settings
 const int frequency = 30000;
@@ -43,7 +43,7 @@ const int resolution = 8;
   //Initialize motors
 void setMotorPins(int motor[4]);
   //Kart control
-void setMotorPow(int powers[]);
+void setMotorPow();
 bool powAtDirForDur(double power, String dir, double dur, double startTime);
   //Motor command options
 void stopAll();                   //dir = "STP"
@@ -74,7 +74,7 @@ void setup() {
   wifi_client.setInsecure(); //TODO: only call when WiFiClientSecure used
 ///////////////   MQTT   ///////////////
   String deviceName = clientName; //converting const char to str
-                //$$ SUBS $$//
+                //$$ SUBS $$//      (be sure to update numSubs above when defining new ones)
     //listening to broker status
       //front right motor
   subs[0].topic = "/" + deviceName + "/fr"; 
@@ -88,13 +88,12 @@ void setup() {
       //back right motor
   subs[3].topic = "/" + deviceName + "/br"; 
   subs[3].qos = 0;
-                //$$ PUBS $$//
-    //no data currently published by kart
-  // pubs[0].topic = "/" + deviceName + "/tag";
-  // pubs[0].qos = 2; 
-  // pubs[0].retained = true;
+                //$$ PUBS $$//      (be sure to update numPubs above when defining new ones)
+  pubs[0].topic = "/" + deviceName + "/data"; //currently not publishing anythiing
+  pubs[0].qos = 2; 
+  pubs[0].retained = true;
                 //$$ connect $$//
-  rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
+  kart_mqtt_client.connect(clientName, brokerLogin, brokerPW);
 ///////////////   Time   ///////////////
   configTime(-5 * 3600, 0, timeServer1, timeServer2, timeServer3);
 ///////////////   Iinit Motors   ///////////////
@@ -105,9 +104,9 @@ void setup() {
 }
 
 void loop() {
-  if(!rfid_mqtt_client.loop()){
+  if(!kart_mqtt_client.loop()){
     stopAll();
-    rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
+    kart_mqtt_client.connect(clientName, brokerLogin, brokerPW);
   }
   setMotorPow();
 }
@@ -296,3 +295,6 @@ void reverseMotor(int motor[4], double power){
 //   Serial.println("Motor stopped. Testing finished.");
 //   delay(1000);
 // }
+
+
+
