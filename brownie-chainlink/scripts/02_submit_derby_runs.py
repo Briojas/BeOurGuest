@@ -8,14 +8,14 @@ def main():
     derby_contract = DaDerpyDerby[-1]
     #derby_contract.address = 0xA4ce654aEe82615e24A65B2613FAA29124916fDb #latest valid contract address
     script_cids = [
-        'bafybeifuwwpnax3l6u3ymhuywqpqj2bsaswbcacfnjbn3fjbtloq7m7buy',
-        'bafybeigkweundbmw7sykcdkavtry62cmyhtqxqqge42oish3aga65ulpua',
-        'bafybeictce47tbuyb76iwxqtlbatmlkch6j5qzlexakz736f3egy56tn5q',
-        'bafybeibvtjeu2ymjfbewxkxyab6fjkwdpmvzfjllzryj4havbvfqpv4kde',
-        'bafybeias5qyksjzjhw55ry6ikwr464vwplzmpotrgsoipdw5dvaoacswty',
-        'bafybeihiarb2z7b4akdupbstkjupe4kwfcx4snb4zvgtqjlwo2pzn72boe',
-        'bafybeieqql7cmc4ajn44niuiryy2pct2xc7k3tmohbkc4jbziam4crccmy',
-        'bafybeigx5tjpy6dzhz2525vfibkfcfk4jtni2oubq3konbpwtlnz4junmq'
+        'bafybeigtunjreifmfz7czluekabw2fk56q6klir7cj63ts4uykn46kzu4y',
+        'bafybeidgztg2wqzqhvohs675mj3ahhgaiugjbq4ftb2xvensfdrhus3sga',
+        'bafybeidglme5rxmmlzsrtv6t6r5lbqkhaqox645x54v3qvznjjnechlfq4',
+        'bafybeibdsi6vuh6a7fewk3yd2usazfc5ot3zerkc5sqn5qtq2jb3vaoi6i',
+        'bafybeidrjoe7dk433llirtlhbqj3zct3a7ke76l7f7ic33emtgqxwhfs7q',
+        'bafybeiababpqybx4plyriq6c54cxo62a3httlcq5gr73bbwwf7v6h2dhnq',
+        'bafybeig2ow23jyppvcx5e6xh6bz6jnyvmlhb53up7dsyjvl3cqq6snwlna',
+        'bafybeia726nvawbg2m2laaeohlq5txihpyzk6z5und3mnmbuqotstu5yli'
     ]
     for cid in script_cids:
         tx = fund_with_link(
