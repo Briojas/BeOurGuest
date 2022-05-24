@@ -19,7 +19,7 @@ WiFiClientSecure wifi_client;
 #include <mqttLogin.h>
 MQTTClient mqtt_client;
 const int port = 8883;
-const char clientName[] = "kart"; //to be String 'deviceName' in setup()
+const char clientName[] = "kart_1"; //to be String 'deviceName' in setup()
 const int numPubs = 1;
 mqtt_pubSubDef_t pubs[numPubs];
 const int numSubs = 1;

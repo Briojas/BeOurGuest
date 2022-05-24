@@ -62,6 +62,10 @@ class Bridge(object):
         self.allowed_callback_timeout = 5
         self.hostname = host
         
+        self.scoring_element_names = [
+            'score_element_1'
+        ]
+
         self.client = mqtt.Client()
 
         if user and key:
@@ -209,7 +213,46 @@ class Bridge(object):
                             topic['qos'])
                 if action['action'] == 'delay':
                     time.sleep(action['data'])
+        self.__collect_publish_scores()
+        self.__reset_game()
+        self.__clear_element_scores()
         return True #TODO: add error catching
 
+    def __collect_publish_scores(self):
+        score = 0
+        for device in self.scoring_element_names:
+            device_score_topic = '/' + device + '/score'
+            device_data = {
+                'topic': device_score_topic,
+                'qos': 2
+            }
+            self.subscribe(device_data)
+            score = score + int(self.__get_data_on(device_score_topic))
+        self.client.publish(
+            '/score',
+            str(score),
+            2,
+            True)
 
-        
+    def __reset_game(self): 
+        #TODO: use sensors on vehicles and field to place game into reset position
+        motors = [
+            '/kart_1/fr',
+            '/kart_1/fl',
+            '/kart_1/bl',
+            '/kart_1/br']
+        for motor_topic in motors:
+            self.client.publish(
+                motor_topic,
+                0,
+                2,
+                True)
+
+    def __clear_element_scores(self):
+        for device in self.scoring_element_names:
+            device_score_topic = '/' + device + '/score'
+            self.client.publish(
+                device_score_topic,
+                '0',
+                2,
+                True)
