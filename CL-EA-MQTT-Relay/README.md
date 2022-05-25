@@ -26,10 +26,10 @@ This template shows basic usecases of a Chainlink external adapter connecting a 
     .env File:
     PRIVATE_BROKER_DOMAIN = some.broker.domain
     ```
-5. Build the docker image and run the container:
+5. Build a docker container, then start it:
     ```
-    docker build . -t cl-ea-mqtt-relay
-    docker run -it -p 8080:8080 cl-ea-mqtt-relay
+    docker container create -it --name cl-ea-mqtt-relay -p 8080:8080 cl-ea-mqtt-relay
+    docker start cl-ea-mqtt-relay
     ```
 6. Setup the [node bridge](https://docs.chain.link/docs/node-operators/).
 7. Create the [node job](https://docs.chain.link/docs/jobs/).

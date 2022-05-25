@@ -167,7 +167,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         //node data
     using Chainlink for Chainlink.Request;
     address private oracle;
-    bytes32 private job_id_pubsub_ints;
+    bytes32 private job_id_scores_pubsub;
     bytes32 private job_id_ipfs;
     uint256 private fee;
 
@@ -177,14 +177,14 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
      * Network: Kovan
      * Oracle: 0xEcA7eD4a7e36c137F01f5DAD098e684882c8cEF3
      * Job IDs: below
-     * Fee: 0.1 LINK
+     * Fee: 1 LINK 
      */
     constructor(uint score_reset_interval) ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();
-        oracle = 0xEcA7eD4a7e36c137F01f5DAD098e684882c8cEF3;
-        job_id_pubsub_ints = "f485e865867047e3a6b6eefde9b3a600";
-        job_id_ipfs = "6a4c62ab7e8241e1ad5b4499c4e25c5e";
-        fee = 0.1 * (10 ** 18);
+        oracle = 0xDdAe60D26fbC2E1728b5D2Eb7c88eF80109D995A;
+        job_id_scores_pubsub =      "56fdf21ddf444d55bdec2ea16100716a";
+        job_id_ipfs =               "cd2569ea63cd47e49eaa169a4a4b9d9e";
+        fee = 1 * (10 ** 18);
         game.initiate();
         high_score.reset_interval = score_reset_interval;
         high_score.score = 0;
@@ -230,20 +230,33 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     }
 
         //todo: make join_queue payable for populating award pool?
-    function join_queue(bytes calldata script_cid_1, bytes calldata script_cid_2) public returns (uint ticket){
+    function join_queue(bytes calldata script_cid_1, bytes calldata script_cid_2) public returns (uint ticket, uint ticket_key){
         game.insert(script_cid_1, script_cid_2);
-        return game.data[next_key].ticket; 
+        ticket_key = game.tickets.next_submission_key - 1;
+        ticket = game.data[ticket_key].ticket; 
     }
 
-    function debug() public view returns (uint){
-        debug_data = game.tickets.next_submission_key;
+    function submission_data(uint ticket_key) public view returns (
+        address player,
+        uint ticket,
+        string memory script_cid,
+        bool executed,
+        uint score
+    ){
+        player = game.data[ticket_key].player; 
+        ticket = game.data[ticket_key].ticket;
+        string memory script_cid_1 = string(game.data[ticket_key].script_cid[0]);
+        string memory script_cid_2 = string(game.data[ticket_key].script_cid[1]);
+        script_cid = string.concat(script_cid_1, script_cid_2);
+        executed = game.data[ticket_key].executed;
+        score = game.data[ticket_key].score;
     }
 
-    // function check_ticket(uint ticket) public returns (bool status, uint score){
-    //     uint ticket_key = game.find_ticket_key(ticket);
-    //     status = game.data[ticket_key].executed;
-    //     score = game.data[ticket_key].score;
-    // }
+    function debug_execute_sub() public {
+        execute_submission();
+        game.tickets.curr_ticket ++;
+        game.set_curr_ticket_key();
+    }
 
     // function estimated_wait(uint ticket) public returns (uint time_minutes){
     //     return 1;//todo: user can get an estimated time for when a ticket is expected to execute
@@ -277,7 +290,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         int256 _payload, 
         int16 _retain
         ) private returns (bytes32 requestId){
-            Chainlink.Request memory request = buildChainlinkRequest(job_id_pubsub_ints, address(this), this.fulfill_score.selector);
+            Chainlink.Request memory request = buildChainlinkRequest(job_id_scores_pubsub, address(this), this.fulfill_score.selector);
             
             // Set the params for the external adapter
             request.add("action", _action); //options: "publish", "subscribe"
@@ -300,9 +313,9 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
             // Set the params for the external adapter
             request.add("action", action); //"ipfs"
             request.add("topic", _topic); //subtasks: "script"
-            //request.addInt("qos", _qos); //unused
+            request.addInt("qos", 0); //unused
             request.add("payload", _payload); //IPFS CID
-            //request.addInt("retain", _retain); //unused
+            request.addInt("retain", 0); //unused
             
             // Sends the request
             return sendChainlinkRequestTo(oracle, request, fee);
