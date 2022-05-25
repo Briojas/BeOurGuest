@@ -28,8 +28,8 @@ This template shows basic usecases of a Chainlink external adapter connecting a 
     ```
 5. Build the docker image and run the container:
     ```
-    docker build . -t cl-ea-mqtt-client
-    docker run -it -p 8080:8080 cl-ea-mqtt-client
+    docker build . -t cl-ea-mqtt-relay
+    docker run -it -p 8080:8080 cl-ea-mqtt-relay
     ```
 6. Setup the [node bridge](https://docs.chain.link/docs/node-operators/).
 7. Create the [node job](https://docs.chain.link/docs/jobs/).

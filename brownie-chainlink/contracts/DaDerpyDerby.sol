@@ -24,6 +24,7 @@ struct Tickets {
     uint num_tickets;
     uint curr_ticket;
     uint curr_ticket_key;
+    uint next_submission_key;
 }
 
 enum States {READY, SUBMITTED, EXECUTED, COLLECTED}
@@ -48,10 +49,12 @@ library Queue_Management {
     function initiate(Queue storage self) internal {
         self.tickets.num_tickets = 0; //will increment to 1 after first Submission
         self.tickets.curr_ticket = 0; //first ticket submitted will be ticket 1
+        self.tickets.next_submission_key = 0; //first submission is placed at beginning of queue
         self.state = States.READY;
     }
 
-    function insert(Queue storage self, uint key, bytes calldata script_cid_1, bytes calldata script_cid_2) internal returns (bool replaced) {
+    function insert(Queue storage self, bytes calldata script_cid_1, bytes calldata script_cid_2) internal{
+        uint key = self.tickets.next_submission_key;
         uint key_index = self.data[key].key_index;
         self.tickets.num_tickets ++;
         self.data[key].ticket = self.tickets.num_tickets;
@@ -60,14 +63,13 @@ library Queue_Management {
         self.data[key].executed = false;
         if (key_index > 0){ //checks if key already existed, and was overwritten
             self.keys[key_index].deleted = false; //a deleted Submission overwritten should not be marked deleted
-            return true;
         } else { //if key didn't exist, the queue array has grown
             key_index = self.keys.length;
             self.keys.push();
             self.data[key].key_index = key_index + 1;
             self.keys[key_index].key = key;
-            return false;
         }
+        set_next_submission_key(self);
     }
 
     function remove(Queue storage self, uint key) internal returns (bool success) {
@@ -79,8 +81,11 @@ library Queue_Management {
         return true;
     }
 
-    function get_next_submission_key(Queue storage self) internal returns (uint key){
-        return Iterator.unwrap(iterator_find_next_deleted(self, 0));
+    function set_next_submission_key(Queue storage self) internal {
+        if(self.keys.length < 0){
+            self.tickets.next_submission_key = 0;
+        }
+        self.tickets.next_submission_key = Iterator.unwrap(iterator_find_next_deleted(self, 0));
     }
 
     function find_ticket_key(Queue storage self, uint ticket) internal returns (uint goal_key){
@@ -90,7 +95,7 @@ library Queue_Management {
             key = iterate_next(self, key)
         ){
             if(!self.data[Iterator.unwrap(key)].executed && ticket == self.data[Iterator.unwrap(key)].ticket){
-                return Iterator.unwrap(key);
+                goal_key =  Iterator.unwrap(key);
             }
         }
     }
@@ -153,7 +158,7 @@ library Queue_Management {
 
 contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwner{
         //game data
-    Queue private game;
+    Queue public game;
     using Queue_Management for Queue;
     High_Score public high_score;
     uint public last_time_stamp;
@@ -165,6 +170,8 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     bytes32 private job_id_pubsub_ints;
     bytes32 private job_id_ipfs;
     uint256 private fee;
+
+    uint public debug_data;
     
     /**
      * Network: Kovan
@@ -176,7 +183,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         setPublicChainlinkToken();
         oracle = 0xEcA7eD4a7e36c137F01f5DAD098e684882c8cEF3;
         job_id_pubsub_ints = "f485e865867047e3a6b6eefde9b3a600";
-        job_id_ipfs = "todo";
+        job_id_ipfs = "6a4c62ab7e8241e1ad5b4499c4e25c5e";
         fee = 0.1 * (10 ** 18);
         game.initiate();
         high_score.reset_interval = score_reset_interval;
@@ -224,20 +231,23 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
 
         //todo: make join_queue payable for populating award pool?
     function join_queue(bytes calldata script_cid_1, bytes calldata script_cid_2) public returns (uint ticket){
-        uint next_key = game.get_next_submission_key();
-        game.insert(next_key, script_cid_1, script_cid_2);
+        game.insert(script_cid_1, script_cid_2);
         return game.data[next_key].ticket; 
     }
 
-    function check_ticket(uint ticket) public returns (bool status, uint score){
-        uint ticket_key = game.find_ticket_key(ticket);
-        status = game.data[ticket_key].executed;
-        score = game.data[ticket_key].score;
+    function debug() public view returns (uint){
+        debug_data = game.tickets.next_submission_key;
     }
 
-    function estimated_wait(uint ticket) public returns (uint time_minutes){
-        return 1;//todo: user can get an estimated time for when a ticket is expected to execute
-    }
+    // function check_ticket(uint ticket) public returns (bool status, uint score){
+    //     uint ticket_key = game.find_ticket_key(ticket);
+    //     status = game.data[ticket_key].executed;
+    //     score = game.data[ticket_key].score;
+    // }
+
+    // function estimated_wait(uint ticket) public returns (uint time_minutes){
+    //     return 1;//todo: user can get an estimated time for when a ticket is expected to execute
+    // }
     
     /**
      * Chainlink requests to
