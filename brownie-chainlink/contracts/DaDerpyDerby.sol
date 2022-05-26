@@ -167,6 +167,22 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     High_Score public high_score;
     uint public last_time_stamp;
     string private score_topic = "/daderpyderby/score";
+    event submission_ticket(
+        address player,
+        uint ticket,
+        uint ticket_key,
+        string script_cid
+    );
+    event executed_ticket(
+        address player,
+        uint ticket,
+        bool executed
+    );
+    event scored_ticket(
+        address player,
+        uint ticket,
+        uint score
+    );
     
         //node data
     using Chainlink for Chainlink.Request;
@@ -202,8 +218,6 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
 
         if(game.state == States.READY){
             upkeepNeeded = game.tickets.curr_ticket < game.tickets.num_tickets;
-        //note: no checks for States.SUBMITTED, becuase Fulfillment() should enact the state change to States.EXECUTED
-        //todo: utilize States.SUBMITTED to monitor for execution failures
         }else if(game.state== States.EXECUTED){
             upkeepNeeded = true;
         }else if(game.state == States.COLLECTED){
@@ -223,8 +237,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         if(game.state == States.READY && game.tickets.curr_ticket < game.tickets.num_tickets){
             game.tickets.curr_ticket ++;
             game.set_curr_ticket_key();
-            execute_submission();
-        //note: see above for States.SUBMITTED notes
+            execute_submission(); 
         }else if(game.state == States.EXECUTED){
             collect_score();
         }else if(game.state == States.COLLECTED){
@@ -238,6 +251,12 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         game.insert(script_cid_1, script_cid_2);
         ticket_key = game.tickets.next_submission_key - 1;
         ticket = game.data[ticket_key].ticket; 
+        emit submission_ticket(
+            msg.sender,
+            ticket,
+            ticket_key,
+            game.pull_ticket()
+        );
     }
 
     function submission_data(uint ticket_key) public view returns (
@@ -255,16 +274,6 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         executed = game.data[ticket_key].executed;
         score = game.data[ticket_key].score;
     }
-
-    // function debug_execute_sub() public {
-    //     execute_submission();
-    //     game.tickets.curr_ticket ++;
-    //     game.set_curr_ticket_key();
-    // }
-
-    // function estimated_wait(uint ticket) public returns (uint time_minutes){
-    //     return 1;//todo: user can get an estimated time for when a ticket is expected to execute
-    // }
     
     /**
      * Chainlink requests to
@@ -282,14 +291,14 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     function collect_score() private returns (bytes32 requestId){
         string memory action = "subscribe";
         game.update_state(); //States: EXECUTED -> COLLECTING
-        return call_pubsub_ints(action, score_topic, 0, 0, 0); //payload and retained flag ignored
+        return call_pubsub_scores(action, score_topic, 0, 0, 0); //payload and retained flag ignored
     }
     function clear_score() private returns (bytes32 requestId){
         string memory action = "publish";
         game.update_state(); //States: COLLECTED -> RESETTING
-        return call_pubsub_ints(action, score_topic, 0, 0, 1); //payload = 0, retained = 1(true)
+        return call_pubsub_scores(action, score_topic, 0, 0, 1); //payload = 0, retained = 1(true)
     }
-    function call_pubsub_ints(
+    function call_pubsub_scores(
         string memory _action, 
         string memory _topic, 
         int16 _qos, 
@@ -327,14 +336,27 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
             return sendChainlinkRequestTo(oracle, request, fee);
     }
     function fulfill_execution_request(bytes32 _requestId, bool status) public recordChainlinkFulfillment(_requestId){
-        //todo: error catching on failed execution statuses
-        game.update_execution_status(status);
-        game.update_state(); //States: EXECUTING -> EXECUTED
+        emit executed_ticket(
+            game.data[ticket_key].player,
+            game.data[ticket_key].ticket,
+            status);
+        if (status){
+            game.update_execution_status(status);
+            game.update_state(); //States: EXECUTING -> EXECUTED
+        }else{
+            //todo: handle unexecuted scripts with retry attempts logic
+            game.state = States.READY; //resetting states 
+        }
+        
     }
     function fulfill_score(bytes32 _requestId, uint256 score) public recordChainlinkFulfillment(_requestId){
         //todo: error catching on fails to pubsub scores
         if(game.state == States.COLLECTING){
             game.update_score(score); 
+            emit scored_ticket(
+                game.data[ticket_key].player,
+                game.data[ticket_key].ticket,
+                score);
         }
         game.update_state(); //States: COLLECTING -> COLLECTED or RESETTING -> READY
     }
