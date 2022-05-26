@@ -11,7 +11,7 @@ class Bridge(object):
             self.callback['source'] = 'on_connect'
 
     def __on_publish(self, client, userdata, mid):
-        #print('on_pub ' + str(mid)) #Debugging
+        # print('on_pub ' + str(mid)) #Debugging
         if mid == self.callback['id']:
             self.callback['pending'] = False
             self.result = 'published'
@@ -20,7 +20,7 @@ class Bridge(object):
             self.callback['source'] = 'on_publish'
 
     def __on_subscribe(self, client, userdata, mid, granted_qos):
-        #print('on_sub ' + str(mid)) #Debugging
+        # print('on_sub ' + str(mid)) #Debugging
         if mid == self.callback['id']:
             self.callback['pending'] = False
             self.result = 'subscribed'
@@ -47,6 +47,13 @@ class Bridge(object):
                     except ValueError:
                         pass
                 topic['payload'] = received
+
+                    #Debugging
+                print ('on_message, topic: ')
+                print(topic['topic'])
+                print ('on_message, payload: ')
+                print (topic['payload'])
+                
                 break
 
     def __init__(
@@ -199,7 +206,7 @@ class Bridge(object):
         reset_data = {
                 'topic': '/daderpyderby/score',
                 'payload': 0,
-                'qos': 0,
+                'qos': 1,
                 'retain': 1
             }
         self.publish(reset_data)
@@ -224,7 +231,7 @@ class Bridge(object):
         for device in self.scoring_element_names:
             device_score_data = {
                 'topic': '/' + device + '/score',
-                'qos': 0
+                'qos': 1
             }
             self.subscribe(device_score_data)
             score_piece = self.__get_data_on(device_score_data['topic'])
@@ -235,7 +242,7 @@ class Bridge(object):
         score_data = {
                 'topic': '/daderpyderby/score',
                 'payload': score,
-                'qos': 0,
+                'qos': 1,
                 'retain': 1
             }
         self.publish(score_data)
@@ -251,7 +258,7 @@ class Bridge(object):
             motor_data = {
                 'topic': motor_topic,
                 'payload': 0,
-                'qos': 0,
+                'qos': 1,
                 'retain': 1
             }
             self.publish(motor_data)
@@ -261,7 +268,7 @@ class Bridge(object):
             device_score_data = {
                 'topic': '/' + device + '/score',
                 'payload': '0',
-                'qos': 0,
+                'qos': 1,
                 'retain': 1
             }
             self.publish(device_score_data)

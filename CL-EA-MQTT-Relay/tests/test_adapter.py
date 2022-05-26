@@ -1,7 +1,7 @@
 import pytest
 import adapter
 
-job_run_id = 1
+job_run_id = 0x6ba00a293d554b76b7f63a7a5e4527b7
     #vehicle scripts
 script_cids = [
     'bafybeidqzb7nkhfcvv55ibuudginz3u7d6d7vgoohh45zdgtppdy7njrby'
@@ -42,7 +42,7 @@ def test_ipfs(vehicle_script_cids):
     {'id': job_run_id, 'data': {
         'action':'subscribe',
         'topic': topic, 
-        'qos':0,
+        'qos':1,
         'payload': payload_int,
         'retain': 0
     }}
