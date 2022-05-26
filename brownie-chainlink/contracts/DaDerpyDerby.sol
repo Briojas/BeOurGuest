@@ -282,12 +282,12 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     function collect_score() private returns (bytes32 requestId){
         string memory action = "subscribe";
         game.update_state(); //States: EXECUTED -> COLLECTING
-        return call_pubsub_ints(action, score_topic, 2, 0, 0); //payload and retained flag ignored
+        return call_pubsub_ints(action, score_topic, 0, 0, 0); //payload and retained flag ignored
     }
     function clear_score() private returns (bytes32 requestId){
         string memory action = "publish";
         game.update_state(); //States: COLLECTED -> RESETTING
-        return call_pubsub_ints(action, score_topic, 2, 0, 1); //payload = 0, retained = 1(true)
+        return call_pubsub_ints(action, score_topic, 0, 0, 1); //payload = 0, retained = 1(true)
     }
     function call_pubsub_ints(
         string memory _action, 
