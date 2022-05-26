@@ -337,8 +337,8 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     }
     function fulfill_execution_request(bytes32 _requestId, bool status) public recordChainlinkFulfillment(_requestId){
         emit executed_ticket(
-            game.data[ticket_key].player,
-            game.data[ticket_key].ticket,
+            game.data[game.tickets.curr_ticket_key].player,
+            game.data[game.tickets.curr_ticket_key].ticket,
             status);
         if (status){
             game.update_execution_status(status);
@@ -354,8 +354,8 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         if(game.state == States.COLLECTING){
             game.update_score(score); 
             emit scored_ticket(
-                game.data[ticket_key].player,
-                game.data[ticket_key].ticket,
+                game.data[game.tickets.curr_ticket_key].player,
+                game.data[game.tickets.curr_ticket_key].ticket,
                 score);
         }
         game.update_state(); //States: COLLECTING -> COLLECTED or RESETTING -> READY
