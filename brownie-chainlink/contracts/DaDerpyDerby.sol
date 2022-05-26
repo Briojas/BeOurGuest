@@ -124,7 +124,7 @@ library Queue_Management {
     }
 
     function update_execution_status(Queue storage self, bool status) internal {
-        self.data[self.tickets.curr_ticket].executed = status;
+        self.data[self.tickets.curr_ticket_key].executed = status;
     }
 
     function update_score(Queue storage self, uint score) internal {
@@ -195,7 +195,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     function checkUpkeep(bytes calldata checkData) external override returns (bool upkeepNeeded, bytes memory performData) {
             //high score may be reset while processing a submission
         upkeepNeeded = (block.timestamp - last_time_stamp) > high_score.reset_interval;
-        
+
         if(game.state == States.READY){
             upkeepNeeded = game.tickets.curr_ticket < game.tickets.num_tickets;
         //note: no checks for States.SUBMITTED, becuase Fulfillment() should enact the state change to States.EXECUTED
