@@ -196,6 +196,13 @@ class Bridge(object):
             #TODO: Make game_length a parameter fed to the external adapter?
         # game_length = 3 * 60 # scripts execute for 3 minutes
         game_length = 3 * 6
+        reset_data = {
+                'topic': '/daderpyderby/score',
+                'payload': 0,
+                'qos': 2,
+                'retain': 1
+            }
+        self.publish(reset_data)
         while(time.time() - game_start <= game_length):
             for action in script['script']:
                 if action['action'] == 'publish':
@@ -227,7 +234,7 @@ class Bridge(object):
                 score = score + int(score_piece)
         score_data = {
                 'topic': '/daderpyderby/score',
-                'payload': str(score),
+                'payload': score,
                 'qos': 2,
                 'retain': 1
             }
