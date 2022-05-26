@@ -1,5 +1,9 @@
 # chainlink-mix
-
+```
+brownie run 01_deploy_da_derpy_derby --network kovan
+brownie run 02_submit_derby_runs --network kovan
+brownie run debug_derby_data --network kovan
+```
 
 ## Prerequisites
 

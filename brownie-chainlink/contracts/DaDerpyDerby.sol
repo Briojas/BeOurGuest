@@ -193,6 +193,9 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     }
 
     function checkUpkeep(bytes calldata checkData) external override returns (bool upkeepNeeded, bytes memory performData) {
+            //high score may be reset while processing a submission
+        upkeepNeeded = (block.timestamp - last_time_stamp) > high_score.reset_interval;
+        
         if(game.state == States.READY){
             upkeepNeeded = game.tickets.curr_ticket < game.tickets.num_tickets;
         //note: no checks for States.SUBMITTED, becuase Fulfillment() should enact the state change to States.EXECUTED
@@ -202,8 +205,6 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         }else if(game.state == States.COLLECTED){
             upkeepNeeded = true;
         }
-            //high score may be reset while processing a submission
-        upkeepNeeded = (block.timestamp - last_time_stamp) > high_score.reset_interval;
         performData = checkData; //unused. separated logic executed based on internal states
     }
 
