@@ -226,7 +226,7 @@ class Bridge(object):
             elif score_piece is str:
                 score = score + int(score_piece)
         score_data = {
-                'topic': '/score',
+                'topic': '/daderpyderby/score',
                 'payload': str(score),
                 'qos': 2,
                 'retain': 1

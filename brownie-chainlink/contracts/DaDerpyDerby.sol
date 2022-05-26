@@ -162,7 +162,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     using Queue_Management for Queue;
     High_Score public high_score;
     uint public last_time_stamp;
-    string private score_topic = "/score";
+    string private score_topic = "/daderpyderby/score";
     
         //node data
     using Chainlink for Chainlink.Request;
