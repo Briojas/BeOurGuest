@@ -27,7 +27,7 @@ struct Tickets {
     uint next_submission_key;
 }
 
-enum States {READY, SUBMITTED, EXECUTED, COLLECTED}
+enum States {READY, EXECUTING, EXECUTED, COLLECTING, COLLECTED, RESETTING}
 
 struct Queue { 
     mapping(uint => Submission) data;
@@ -113,12 +113,16 @@ library Queue_Management {
 
     function update_state(Queue storage self) internal {
         if(self.state == States.READY){
-            self.state = States.SUBMITTED;
-        }else if(self.state == States.SUBMITTED){
+            self.state = States.EXECUTING;
+        }else if(self.state == States.EXECUTING){
             self.state = States.EXECUTED;
         }else if(self.state == States.EXECUTED){
+            self.state = States.COLLECTING;
+        }else if(self.state == States.COLLECTING){
             self.state = States.COLLECTED;
         }else if(self.state == States.COLLECTED){
+            self.state = States.RESETTING;
+        }else if(self.state == States.RESETTING){
             self.state = States.READY;
         }
     }
@@ -272,15 +276,17 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     function execute_submission() private returns (bytes32 requestId){
         string memory topic = "script";
         string memory payload = game.pull_ticket();
-        game.update_state();
+        game.update_state(); //States: READY -> EXECUTING
         return call_ipfs(topic, payload); //qos and retained flags ignored
     }
     function collect_score() private returns (bytes32 requestId){
         string memory action = "subscribe";
+        game.update_state(); //States: EXECUTED -> COLLECTING
         return call_pubsub_ints(action, score_topic, 2, 0, 0); //payload and retained flag ignored
     }
     function clear_score() private returns (bytes32 requestId){
         string memory action = "publish";
+        game.update_state(); //States: COLLECTED -> RESETTING
         return call_pubsub_ints(action, score_topic, 2, 0, 1); //payload = 0, retained = 1(true)
     }
     function call_pubsub_ints(
@@ -323,14 +329,14 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     function fulfill_execution_request(bytes32 _requestId, bool status) public recordChainlinkFulfillment(_requestId){
         //todo: error catching on failed execution statuses
         game.update_execution_status(status);
-        game.update_state();
+        game.update_state(); //States: EXECUTING -> EXECUTED
     }
     function fulfill_score(bytes32 _requestId, uint256 score) public recordChainlinkFulfillment(_requestId){
         //todo: error catching on fails to pubsub scores
-        if(game.state == States.COLLECTED){
-            game.update_score(score);
+        if(game.state == States.COLLECTING){
+            game.update_score(score); 
         }
-        game.update_state();
+        game.update_state(); //States: COLLECTING -> COLLECTED or RESETTING -> READY
     }
 
     function check_for_high_score() private {
