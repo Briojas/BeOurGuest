@@ -7,8 +7,9 @@ script_cids = [
     'bafybeidqzb7nkhfcvv55ibuudginz3u7d6d7vgoohh45zdgtppdy7njrby'
 ]
 
-topic = '/smart-contract-client/test'
-payload_int = 7
+topic = '/daderpyderby/score'
+# topic = '/score_element_1/score'
+payload_int = 12
 
 def adapter_setup(test_data):
     a = adapter.Adapter(test_data)
@@ -39,21 +40,16 @@ def test_ipfs(vehicle_script_cids):
     #pub/sub int data
 @pytest.mark.parametrize('test_data', [
     {'id': job_run_id, 'data': {
-        'action': 'publish',
-        'topic': topic, 
-        'qos': 0, 
-        'payload': payload_int, 
-        'retain': 1
-    }},
-    {'id': job_run_id, 'data': {
         'action':'subscribe',
         'topic': topic, 
-        'qos':0
+        'qos':0,
+        'payload': payload_int,
+        'retain': 0
     }}
 ])
 def test_pub_sub_ints(test_data):
     result = adapter_setup(test_data)
-    # print(result) #Debugging
+    print(result) #Debugging
     assert result['statusCode'] == 200
     assert result['jobRunID'] == job_run_id
     for topic in result['data']:

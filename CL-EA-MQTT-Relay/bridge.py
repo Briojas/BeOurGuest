@@ -199,7 +199,7 @@ class Bridge(object):
         reset_data = {
                 'topic': '/daderpyderby/score',
                 'payload': 0,
-                'qos': 2,
+                'qos': 0,
                 'retain': 1
             }
         self.publish(reset_data)
@@ -224,7 +224,7 @@ class Bridge(object):
         for device in self.scoring_element_names:
             device_score_data = {
                 'topic': '/' + device + '/score',
-                'qos': 2
+                'qos': 0
             }
             self.subscribe(device_score_data)
             score_piece = self.__get_data_on(device_score_data['topic'])
@@ -235,7 +235,7 @@ class Bridge(object):
         score_data = {
                 'topic': '/daderpyderby/score',
                 'payload': score,
-                'qos': 2,
+                'qos': 0,
                 'retain': 1
             }
         self.publish(score_data)
@@ -251,7 +251,7 @@ class Bridge(object):
             motor_data = {
                 'topic': motor_topic,
                 'payload': 0,
-                'qos': 2,
+                'qos': 0,
                 'retain': 1
             }
             self.publish(motor_data)
@@ -261,7 +261,7 @@ class Bridge(object):
             device_score_data = {
                 'topic': '/' + device + '/score',
                 'payload': '0',
-                'qos': 2,
+                'qos': 0,
                 'retain': 1
             }
             self.publish(device_score_data)
