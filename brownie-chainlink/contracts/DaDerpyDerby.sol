@@ -175,16 +175,16 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     
     /**
      * Network: Kovan
-     * Oracle: 0xEcA7eD4a7e36c137F01f5DAD098e684882c8cEF3
+     * Oracle: 0xDdAe60D26fbC2E1728b5D2Eb7c88eF80109D995A
      * Job IDs: below
-     * Fee: 1 LINK 
+     * Fee: 0.01 LINK 
      */
     constructor(uint score_reset_interval) ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();
         oracle = 0xDdAe60D26fbC2E1728b5D2Eb7c88eF80109D995A;
-        job_id_scores_pubsub =      "56fdf21ddf444d55bdec2ea16100716a";
-        job_id_ipfs =               "cd2569ea63cd47e49eaa169a4a4b9d9e";
-        fee = 1 * (10 ** 18);
+        job_id_scores_pubsub =      "6ba00a293d554b76b7f63a7a5e4527b7";
+        job_id_ipfs =               "f5bacb5a1cda4fe8b51e22f806c9292b";
+        fee = 0.01 * (10 ** 18);
         game.initiate();
         high_score.reset_interval = score_reset_interval;
         high_score.score = 0;
@@ -193,9 +193,6 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     }
 
     function checkUpkeep(bytes calldata checkData) external override returns (bool upkeepNeeded, bytes memory performData) {
-            //high score may be reset while processing a submission
-        upkeepNeeded = (block.timestamp - last_time_stamp) > high_score.reset_interval;
-
         if(game.state == States.READY){
             upkeepNeeded = game.tickets.curr_ticket < game.tickets.num_tickets;
         //note: no checks for States.SUBMITTED, becuase Fulfillment() should enact the state change to States.EXECUTED
@@ -205,6 +202,8 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         }else if(game.state == States.COLLECTED){
             upkeepNeeded = true;
         }
+            //high score may be reset while processing a submission
+        upkeepNeeded = (block.timestamp - last_time_stamp) > high_score.reset_interval;
         performData = checkData; //unused. separated logic executed based on internal states
     }
 
@@ -252,11 +251,11 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         score = game.data[ticket_key].score;
     }
 
-    function debug_execute_sub() public {
-        execute_submission();
-        game.tickets.curr_ticket ++;
-        game.set_curr_ticket_key();
-    }
+    // function debug_execute_sub() public {
+    //     execute_submission();
+    //     game.tickets.curr_ticket ++;
+    //     game.set_curr_ticket_key();
+    // }
 
     // function estimated_wait(uint ticket) public returns (uint time_minutes){
     //     return 1;//todo: user can get an estimated time for when a ticket is expected to execute

@@ -17,7 +17,13 @@
     ```
 
 Update the node with:
-```
-docker container create --name chainlink-kovan -p 6688:6688 -v ~/.chainlink-kovan:/chainlink -it --env-file=.env smartcontract/chainlink:tag-version local n 
-```
+    ```
+    docker rename chainlink-kovan chainlink-kovan-old-1
+    docker container create --name chainlink-kovan -p 6688:6688 -v ~/.chainlink-kovan:/chainlink -it --env-file=.env smartcontract/chainlink:tag-version local n 
+    ```
 - replace "tag-version" with latest from [here](https://hub.docker.com/r/smartcontract/chainlink/tags)
+
+Edit .env and other text files with:
+    ```
+    nano .env
+    ```

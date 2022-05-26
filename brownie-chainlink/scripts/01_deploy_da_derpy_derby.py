@@ -2,6 +2,7 @@
 from brownie import DaDerpyDerby, config, network
 from scripts.helpful_scripts import (
     LOCAL_BLOCKCHAIN_ENVIRONMENTS,
+    fund_with_link,
     get_account
 )
 
@@ -17,6 +18,10 @@ def deploy_da_derpy_derby():
         block_confirmations=1
     derby.tx.wait(block_confirmations)
     print(f"DaDerpyDerby deployed to {derby.address}")
+    tx = fund_with_link(
+            derby.address, amount=config["networks"][network.show_active()]["fee"]
+        )
+    tx.wait(1)
     return derby
 
 
