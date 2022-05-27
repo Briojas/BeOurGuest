@@ -17,7 +17,8 @@ class Adapter:
         self.id_action()
         self.build_bridges()
         self.execute_bridges()
-        self.build_consensus()
+        # self.build_consensus()
+        self.return_data()
         self.burn_bridge_data()
 
     def validate_request_data(self):
@@ -60,6 +61,15 @@ class Adapter:
                     getattr(bridge, self.action)(*self.request_data)
                 except Exception as e:
                     self.result_error(e)
+
+    def return_data(self):
+        if not self.error:
+            data = []
+            for bridge in self.bridges:
+                for topic in bridge.messages:
+                    data.append(topic)
+            self.result = bridge.result
+            self.result_success(data)
 
     def build_consensus(self):
         consensus = []
@@ -149,7 +159,7 @@ class Adapter:
     def burn_bridge_data(self):
         if not self.error:
             for bridge in self.bridges:
-                print(bridge.messages) #Debugging
+                # print(bridge.messages) #Debugging
                 bridge.messages = []
                 bridge.result = 'failed'
 

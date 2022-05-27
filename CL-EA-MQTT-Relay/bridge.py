@@ -49,10 +49,10 @@ class Bridge(object):
                 topic['payload'] = received
 
                     #Debugging
-                print ('on_message, topic: ')
-                print(topic['topic'])
-                print ('on_message, payload: ')
-                print (topic['payload'])
+                # print ('on_message, topic: ')
+                # print(topic['topic'])
+                # print ('on_message, payload: ')
+                # print (topic['payload'])
                 
                 break
 
@@ -69,9 +69,10 @@ class Bridge(object):
         self.allowed_callback_timeout = 5
         self.hostname = host
         
-        self.scoring_element_names = [
-            'score_element_1'
-        ]
+        self.scoring_element_data = [{
+            'topic': '/score_element_1/score',
+            'qos': 0
+        }]
 
         self.client = mqtt.Client()
 
@@ -202,14 +203,17 @@ class Bridge(object):
         game_start = time.time()
             #TODO: Make game_length a parameter fed to the external adapter?
         # game_length = 3 * 60 # scripts execute for 3 minutes
-        game_length = 3 * 6
+        game_length = 6
         reset_data = {
                 'topic': '/daderpyderby/score',
                 'payload': 0,
-                'qos': 1,
+                'qos': 0,
                 'retain': 1
             }
-        self.publish(reset_data)
+        self.subscribe(reset_data) #subscribing to score to validate it publishing after game
+        self.publish(reset_data) #resetting score for upcoming game
+        for device in self.scoring_element_data:
+            self.subscribe(device) #subscribe to relevant scoring topics
         while(time.time() - game_start <= game_length):
             for action in script['script']:
                 if action['action'] == 'publish':
@@ -228,24 +232,27 @@ class Bridge(object):
 
     def __collect_publish_scores(self):
         score = 0
-        for device in self.scoring_element_names:
-            device_score_data = {
-                'topic': '/' + device + '/score',
-                'qos': 1
-            }
-            self.subscribe(device_score_data)
-            score_piece = self.__get_data_on(device_score_data['topic'])
-            if score_piece is int:
+        main_score_topic = '/daderpyderby/score'
+        for device in self.scoring_element_data:
+            score_piece = self.__get_data_on(device['topic'])
+            if type(score_piece) is int:
                 score = score + score_piece
-            elif score_piece is str:
+            elif type(score_piece) is str:
                 score = score + int(score_piece)
         score_data = {
-                'topic': '/daderpyderby/score',
+                'topic': main_score_topic,
                 'payload': score,
-                'qos': 1,
+                'qos': 0,
                 'retain': 1
             }
         self.publish(score_data)
+        blank_data = {
+                'topic': main_score_topic,
+                'payload': 0,
+                'qos': 0,
+                'retain': 0
+            }
+        self.publish(blank_data) #pushing through blank data to force the previous retained publish
 
     def __reset_game(self): 
         #TODO: use sensors on vehicles and field to place game into reset position
@@ -258,17 +265,17 @@ class Bridge(object):
             motor_data = {
                 'topic': motor_topic,
                 'payload': 0,
-                'qos': 1,
+                'qos': 0,
                 'retain': 1
             }
             self.publish(motor_data)
 
     def __clear_element_scores(self):
-        for device in self.scoring_element_names:
+        for device in self.scoring_element_data:
             device_score_data = {
-                'topic': '/' + device + '/score',
+                'topic': device['topic'],
                 'payload': '0',
-                'qos': 1,
+                'qos': device['qos'],
                 'retain': 1
             }
             self.publish(device_score_data)

@@ -27,7 +27,7 @@ struct Tickets {
     uint next_submission_key;
 }
 
-enum States {READY, EXECUTING, EXECUTED, COLLECTING, COLLECTED, RESETTING}
+enum States {READY, EXECUTING, EXECUTED, COLLECTING, COLLECTED}
 
 struct Queue { 
     mapping(uint => Submission) data;
@@ -121,8 +121,6 @@ library Queue_Management {
         }else if(self.state == States.COLLECTING){
             self.state = States.COLLECTED;
         }else if(self.state == States.COLLECTED){
-            self.state = States.RESETTING;
-        }else if(self.state == States.RESETTING){
             self.state = States.READY;
         }
     }
@@ -165,7 +163,10 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     Queue public game;
     using Queue_Management for Queue;
     High_Score public high_score;
-    uint public last_time_stamp;
+    uint private high_score_time_stamp;
+    uint private retry_submitting_interval;
+    uint private retry_scoring_interval;
+    uint private retry_time_stamp;
     string private score_topic = "/daderpyderby/score";
     event submission_ticket(
         address player,
@@ -190,8 +191,6 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     bytes32 private job_id_scores_pubsub;
     bytes32 private job_id_ipfs;
     uint256 private fee;
-
-    uint public debug_data;
     
     /**
      * Network: Kovan
@@ -199,27 +198,33 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
      * Job IDs: below
      * Fee: 0.01 LINK 
      */
-    constructor(uint score_reset_interval) ConfirmedOwner(msg.sender) {
+    constructor(uint score_reset_interval_sec, uint retry_submitting_interval_sec, uint retry_scoring_interval_sec) ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();
         oracle = 0xDdAe60D26fbC2E1728b5D2Eb7c88eF80109D995A;
         job_id_scores_pubsub =      "6ba00a293d554b76b7f63a7a5e4527b7";
         job_id_ipfs =               "f5bacb5a1cda4fe8b51e22f806c9292b";
         fee = 0.01 * (10 ** 18);
         game.initiate();
-        high_score.reset_interval = score_reset_interval;
+        retry_submitting_interval = retry_submitting_interval_sec; //time to retry running a submitted ticket
+        retry_scoring_interval = retry_scoring_interval_sec; //time to retry grabbing a ticket's score
+        high_score.reset_interval = score_reset_interval_sec; //time to reset the game's high score
         high_score.score = 0;
         high_score.leader = payable(0);
-        last_time_stamp = block.timestamp;
+        high_score_time_stamp = block.timestamp;
     }
 
     function checkUpkeep(bytes calldata checkData) external override returns (bool upkeepNeeded, bytes memory performData) {
             //high score may be reset while processing a submission
-        upkeepNeeded = (block.timestamp - last_time_stamp) > high_score.reset_interval;
+        upkeepNeeded = (block.timestamp - high_score_time_stamp) > high_score.reset_interval;
 
         if(game.state == States.READY){
             upkeepNeeded = game.tickets.curr_ticket < game.tickets.num_tickets;
+        }else if(game.state == States.EXECUTING){
+            upkeepNeeded = (block.timestamp - retry_time_stamp) > retry_submitting_interval;
         }else if(game.state== States.EXECUTED){
             upkeepNeeded = true;
+        }else if(game.state== States.COLLECTING){
+            upkeepNeeded = (block.timestamp - retry_time_stamp) > retry_scoring_interval;
         }else if(game.state == States.COLLECTED){
             upkeepNeeded = true;
         }
@@ -229,20 +234,27 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     function performUpkeep(bytes calldata performData) external override {
         performData; //unused. see above
 
-        if((block.timestamp - last_time_stamp) > high_score.reset_interval){
-            last_time_stamp = block.timestamp;
+        if((block.timestamp - high_score_time_stamp) > high_score.reset_interval){
+            high_score_time_stamp = block.timestamp;
             award_winner();
-            //todo: remove deleted keys from the end of the queue 
+            //todo: remove deleted keys from the end of the queue for efficient contract sizing
         }
         if(game.state == States.READY && game.tickets.curr_ticket < game.tickets.num_tickets){
+            retry_time_stamp = block.timestamp;
             game.tickets.curr_ticket ++;
             game.set_curr_ticket_key();
-            execute_submission(); 
+            execute_submission();
+        }else if(game.state == States.EXECUTING && (block.timestamp - retry_time_stamp) > retry_submitting_interval){
+            game.state = States.READY;
+            //todo: track number of retries
         }else if(game.state == States.EXECUTED){
+            retry_time_stamp = block.timestamp;
             collect_score();
+        }else if(game.state == States.COLLECTING && (block.timestamp - retry_time_stamp) > retry_submitting_interval){
+            game.state = States.EXECUTED;
+            //todo: track number of retries
         }else if(game.state == States.COLLECTED){
             check_for_high_score();
-            clear_score();
         }
     }
 
@@ -279,7 +291,6 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
      * Chainlink requests to
             - send IPFS scripts to cl-ea-mqtt-relay for executing games (execute_sumbission)
             - subscribe on game score topics to pull score data (grab_score)
-            - publish on game score topics for resetting score data between script executions (clear_score)
         on the MQTT broker(s) utilized by the Node's External Adapter managing the game's state.
      */
     function execute_submission() private returns (bytes32 requestId){
@@ -292,11 +303,6 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
         string memory action = "subscribe";
         game.update_state(); //States: EXECUTED -> COLLECTING
         return call_pubsub_scores(action, score_topic, 0, 0, 0); //payload and retained flag ignored
-    }
-    function clear_score() private returns (bytes32 requestId){
-        string memory action = "publish";
-        game.update_state(); //States: COLLECTED -> RESETTING
-        return call_pubsub_scores(action, score_topic, 0, 0, 1); //payload = 0, retained = 1(true)
     }
     function call_pubsub_scores(
         string memory _action, 
@@ -344,21 +350,17 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
             game.update_execution_status(status);
             game.update_state(); //States: EXECUTING -> EXECUTED
         }else{
-            //todo: handle unexecuted scripts with retry attempts logic
             game.state = States.READY; //resetting states 
         }
         
     }
     function fulfill_score(bytes32 _requestId, uint256 score) public recordChainlinkFulfillment(_requestId){
-        //todo: error catching on fails to pubsub scores
-        if(game.state == States.COLLECTING){
-            game.update_score(score); 
-            emit scored_ticket(
-                game.data[game.tickets.curr_ticket_key].player,
-                game.data[game.tickets.curr_ticket_key].ticket,
-                score);
-        }
-        game.update_state(); //States: COLLECTING -> COLLECTED or RESETTING -> READY
+        game.update_score(score); 
+        emit scored_ticket(
+            game.data[game.tickets.curr_ticket_key].player,
+            game.data[game.tickets.curr_ticket_key].ticket,
+            score);
+        game.update_state(); //States: COLLECTING -> COLLECTED
     }
 
     function check_for_high_score() private {
@@ -366,6 +368,7 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
             high_score.score = game.data[game.tickets.curr_ticket_key].score;
             high_score.leader = game.data[game.tickets.curr_ticket_key].player;
         }
+        game.update_state(); //States: COLLECTED -> READY
     }
 
     function award_winner() private {

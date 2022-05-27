@@ -31,18 +31,23 @@ def test_ipfs(vehicle_script_cids):
     assert result['jobRunID'] == job_run_id
     for subtask in result['data']:
         # print(subtask)
-        assert type(subtask['payload']['value']) is str
+        assert type(subtask['payload']) is str
         if test_data['data']['topic'] == 'script':
-            assert type(result['result']['value']) is bool
-        assert subtask['payload']['reporting'] >= 0.5
-    assert type(result['result']) is dict
+            assert type(result['result']) is bool
 
     #pub/sub int data
 @pytest.mark.parametrize('test_data', [
+    # {'id': job_run_id, 'data': {
+    #     'action':'publish',
+    #     'topic': topic, 
+    #     'qos':0,
+    #     'payload': payload_int,
+    #     'retain': 1
+    # }},
     {'id': job_run_id, 'data': {
         'action':'subscribe',
         'topic': topic, 
-        'qos':1,
+        'qos':0,
         'payload': payload_int,
         'retain': 0
     }}
@@ -53,10 +58,8 @@ def test_pub_sub_ints(test_data):
     assert result['statusCode'] == 200
     assert result['jobRunID'] == job_run_id
     for topic in result['data']:
-        assert type(topic['payload']['value']) is int
-        assert topic['payload']['reporting'] >= 0.5
-    assert type(result['result']) is dict
+        assert type(topic['payload']) is int
     if test_data['data']['action'] == 'publish':
-        assert result['result']['value'] == 'published'
+        assert result['result'] == 'published'
     else:
-        assert result['result']['value'] == 'subscribed'
+        assert result['result'] == 'subscribed'

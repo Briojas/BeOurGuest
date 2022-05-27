@@ -10,8 +10,10 @@ def deploy_da_derpy_derby():
     day_in_seconds = 24 * 60 * 60
     account = get_account()
     derby = DaDerpyDerby.deploy(
-        day_in_seconds,
-        {"from": account},
+        day_in_seconds, #high score reset interval
+        60,             #retry submission interval
+        60,             #retry collecting score interval
+        {"from": account}
     )
     block_confirmations=6
     if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
