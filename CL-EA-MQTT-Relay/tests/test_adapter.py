@@ -16,24 +16,24 @@ def adapter_setup(test_data):
     return a.result
 
 #ipfs  data
-@pytest.mark.parametrize('vehicle_script_cids', script_cids)
-def test_ipfs(vehicle_script_cids):
-    test_data = {
-        'id': job_run_id, 
-        'data': {
-            'action': 'ipfs',
-            'topic': 'script', 
-            'payload': vehicle_script_cids, 
-    }}
-    result = adapter_setup(test_data)
-    print(result) #Debugging
-    assert result['statusCode'] == 200
-    assert result['jobRunID'] == job_run_id
-    for subtask in result['data']:
-        # print(subtask)
-        assert type(subtask['payload']) is str
-        if test_data['data']['topic'] == 'script':
-            assert type(result['result']) is bool
+# @pytest.mark.parametrize('vehicle_script_cids', script_cids)
+# def test_ipfs(vehicle_script_cids):
+#     test_data = {
+#         'id': job_run_id, 
+#         'data': {
+#             'action': 'ipfs',
+#             'topic': 'script', 
+#             'payload': vehicle_script_cids, 
+#     }}
+#     result = adapter_setup(test_data)
+#     print(result) #Debugging
+#     assert result['statusCode'] == 200
+#     assert result['jobRunID'] == job_run_id
+#     for subtask in result['data']:
+#         # print(subtask)
+#         assert type(subtask['payload']) is str
+#         if test_data['data']['topic'] == 'script':
+#             assert type(result['result']) is bool
 
     #pub/sub int data
 @pytest.mark.parametrize('test_data', [
