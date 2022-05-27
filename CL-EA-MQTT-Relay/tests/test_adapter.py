@@ -4,7 +4,7 @@ import adapter
 job_run_id = 0x6ba00a293d554b76b7f63a7a5e4527b7
     #vehicle scripts
 script_cids = [
-    'bafybeidqzb7nkhfcvv55ibuudginz3u7d6d7vgoohh45zdgtppdy7njrby'
+    'bafybeidy3zw46wcbbiwzowc7r3p3svecd5uvuom3cjgnpxpwpokxvd5zxm'
 ]
 
 topic = '/daderpyderby/score'
@@ -37,13 +37,13 @@ def test_ipfs(vehicle_script_cids):
 
     #pub/sub int data
 @pytest.mark.parametrize('test_data', [
-    # {'id': job_run_id, 'data': {
-    #     'action':'publish',
-    #     'topic': topic, 
-    #     'qos':0,
-    #     'payload': payload_int,
-    #     'retain': 1
-    # }},
+    {'id': job_run_id, 'data': {
+        'action':'publish',
+        'topic': topic, 
+        'qos':0,
+        'payload': payload_int,
+        'retain': 0
+    }},
     {'id': job_run_id, 'data': {
         'action':'subscribe',
         'topic': topic, 

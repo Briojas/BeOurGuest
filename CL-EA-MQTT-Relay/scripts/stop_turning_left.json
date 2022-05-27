@@ -1,0 +1,57 @@
+{
+    "script":[
+        {
+            "action": "publish",
+            "data":[{
+                "topic": "/derby_kart/fr",
+                "payload": -40,
+                "qos": 0,
+                "retain": true
+            },{
+                "topic": "/derby_kart/fl",
+                "payload": -10,
+                "qos": 0,
+                "retain": true
+            },{
+                "topic": "/derby_kart/bl",
+                "payload": 70,
+                "qos": 0,
+                "retain": true
+            },{
+                "topic": "/derby_kart/br",
+                "payload": -90,
+                "qos": 0,
+                "retain": true
+            }]
+        },{
+            "action": "delay",
+            "data": 18
+        },{
+            "action": "publish",
+            "data":[{
+                "topic": "/derby_kart/fr",
+                "payload": 0,
+                "qos": 0,
+                "retain": true
+            },{
+                "topic": "/derby_kart/fl",
+                "payload": 0,
+                "qos": 0,
+                "retain": true
+            },{
+                "topic": "/derby_kart/bl",
+                "payload": 0,
+                "qos": 0,
+                "retain": true
+            },{
+                "topic": "/derby_kart/br",
+                "payload": 0,
+                "qos": 0,
+                "retain": true
+            }]
+        },{
+            "action": "delay",
+            "data": 18
+        }
+    ]
+}

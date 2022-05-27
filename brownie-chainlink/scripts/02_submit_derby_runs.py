@@ -9,7 +9,7 @@ def main():
     key = 0
     #derby_contract.address = 0xD873d7906c7c58C0e89C347E346504F09FD0E838 #latest valid contract address
     script_cids = [
-        'bafybeigtunjreifmfz7czluekabw2fk56q6klir7cj63ts4uykn46kzu4y']
+        'bafybeiguqxkjrp23hstv7gnyxvjaj3g65uamjj46orho7mxcjbrskjuo5u']
     #     'bafybeidgztg2wqzqhvohs675mj3ahhgaiugjbq4ftb2xvensfdrhus3sga',
     #     'bafybeidglme5rxmmlzsrtv6t6r5lbqkhaqox645x54v3qvznjjnechlfq4',
     #     'bafybeibdsi6vuh6a7fewk3yd2usazfc5ot3zerkc5sqn5qtq2jb3vaoi6i',
@@ -18,8 +18,10 @@ def main():
     #     'bafybeig2ow23jyppvcx5e6xh6bz6jnyvmlhb53up7dsyjvl3cqq6snwlna',
     #     'bafybeia726nvawbg2m2laaeohlq5txihpyzk6z5und3mnmbuqotstu5yli'
     # ]
-    for cid in script_cids:
-        cid_bytes = split_cid(cid)
+    # for cid in script_cids:
+    for cid_subs in range(5):
+        # cid_bytes = split_cid(cid)
+        cid_bytes = split_cid(script_cids[0])
         ticket = derby_contract.join_queue(cid_bytes[0], cid_bytes[1], {"from": account})
         print (derby_contract.game())
         print (derby_contract.submission_data(key))
