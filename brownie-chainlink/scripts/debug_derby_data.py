@@ -7,7 +7,7 @@ def main():
     account = get_account()
     derby_contract = DaDerpyDerby[-1]
     # derby_contract.address = 0x20cD20e38c98E8D7bD8BD5bd1A82af746DCA2Ada #latest valid contract address
-    for num_sub in range(8):
+    for num_sub in range(9):
         print(derby_contract.submission_data(num_sub))
     print(derby_contract.game())
     upkeep = derby_contract.checkUpkeep.call(b'',{"from": account})
