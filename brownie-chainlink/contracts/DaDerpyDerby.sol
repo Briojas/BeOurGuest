@@ -201,8 +201,8 @@ contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOw
     constructor(uint score_reset_interval_sec, uint retry_submitting_interval_sec, uint retry_scoring_interval_sec) ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();
         oracle = 0xDdAe60D26fbC2E1728b5D2Eb7c88eF80109D995A;
-        job_id_scores_pubsub =      "6ba00a293d554b76b7f63a7a5e4527b7";
-        job_id_ipfs =               "f5bacb5a1cda4fe8b51e22f806c9292b";
+        job_id_scores_pubsub =      "c43bf8107b5b430598f25ca17a1b2b73";
+        job_id_ipfs =               "a61db4ea92a543228634e641e979a74e";
         fee = 0.01 * (10 ** 18);
         game.initiate();
         retry_submitting_interval = retry_submitting_interval_sec; //time to retry running a submitted ticket
