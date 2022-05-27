@@ -40,7 +40,7 @@ The Keepers Upkeep successfully monitoring the smart contract's states for execu
 Storing data on IPFS and pulling it down for execution opens endless possibilitiesx for this project.
 
 ## What we learned
-- IPFS storage on web3.storage, and utilizing CIDs to retrieve data from there
+- IPFS storage on web3.storage, and utilizing CIDs to retrieve data
 - Keepers-compatibility
 - Solidity iterable-mappings (used to create the queue) and events
 
