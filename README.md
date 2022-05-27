@@ -2,7 +2,7 @@
 *Chainlink Spring 22 Hackathon Submission*
 
 # Key Features
-- [Keepers-compaitble](https://keepers.chain.link/kovan/3373) [contract](https://kovan.etherscan.io/address/0x760BF4Aa9d5872Dd0E7Fd9b793c52fB12a4635fa) manages a queue of game submissions for execution and scoring
+- [Keepers-compatible](https://keepers.chain.link/kovan/3373) [contract](https://kovan.etherscan.io/address/0x760BF4Aa9d5872Dd0E7Fd9b793c52fB12a4635fa) manages a queue of game submissions for execution and scoring
 - External adapter executes [IPFS scripts](https://bafybeidqzb7nkhfcvv55ibuudginz3u7d6d7vgoohh45zdgtppdy7njrby.ipfs.dweb.link/example_script_derby_vehicle.json) to control and score game elements
 - MQTT client IoT device templates
 
@@ -37,7 +37,7 @@ My wife and I had a son (Nick) born on 4/21/22, the day before the hackathon sta
 ## Accomplishments that we're proud of
 The Keepers Upkeep successfully monitoring the smart contract's states for execution was something I did not think I would even start, much less finish, much less actually work.
 
-Storing data on IPFS and pulling it down for execution opens endless possiblities for this project.
+Storing data on IPFS and pulling it down for execution opens endless possibilitiesx for this project.
 
 ## What we learned
 - IPFS storage on web3.storage, and utilizing CIDs to retrieve data from there
@@ -48,4 +48,4 @@ Storing data on IPFS and pulling it down for execution opens endless possiblitie
 - A GUI is needed for easily creating scripts, pushing them to IPFS, and submitting them to the contract for processing. 
     - A way to watch a stream of the field executing submissions would also be nice
 - Collecting, holding, and awarding users' funds for playing/winning
-- Utilizing a DAO to ensure fair play has occured and enable control to adjust something that was unfair
+- Utilizing a DAO to ensure fair play has occurred and enable control to adjust something that was unfair
