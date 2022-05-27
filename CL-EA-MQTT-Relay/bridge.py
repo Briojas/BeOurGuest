@@ -216,7 +216,7 @@ class Bridge(object):
     def __script(self, script):
         game_start = time.time()
             #TODO: Make game_length a parameter fed to the external adapter?
-        game_length = 60 # scripts execute for 1 minutes
+        game_length = 20 # scripts execute for 1 minutes
         reset_data = {
                 'topic': '/daderpyderby/score',
                 'payload': 0,
