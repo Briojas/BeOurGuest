@@ -34,6 +34,8 @@ IoT devices:
 ## Challenges we ran into
 My wife and I had a son (Nick) born on 4/21/22, the day before the hackathon started. I did not have time to build a GUI for this project, and considered not submitting. However, I was able to finish a bit more than I expected, and decided I wanted to share where I'm at with the project.
 
+Also, my Linux machine running my Chainlink node kept crashing. Still trying to figure that one out. 
+
 ## Accomplishments that we're proud of
 The Keepers Upkeep successfully monitoring the smart contract's states for execution was something I did not think I would even start, much less finish, much less actually work.
 
