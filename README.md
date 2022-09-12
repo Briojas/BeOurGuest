@@ -26,8 +26,10 @@ This project showcases a potential backend for a remote arcade. It takes in subm
 ## How we built it
 Smart Contract:
 - Written in solidity, Brownie was used for compiling, deployment, and scripting
+
 External Adapter:
 - Written in python, Pipenv and Pytest was used for management and testing
+
 IoT devices:
 - Written in C++, PlatformIO was used for dependency management, compiling, testing, deployment, and serial monitoring
 
