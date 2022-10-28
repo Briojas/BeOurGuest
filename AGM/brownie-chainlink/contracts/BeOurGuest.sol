@@ -158,7 +158,7 @@ library Queue_Management {
     }
 }
 
-contract DaDerpyDerby is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwner{
+contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwner{
         //game data
     Queue public game;
     using Queue_Management for Queue;
