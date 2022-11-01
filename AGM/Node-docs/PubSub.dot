@@ -1,6 +1,6 @@
 type = "directrequest"
 schemaVersion = 1
-name = "Scores PubSub"
+name = "PubSub"
 maxTaskDuration = "0s"
 contractAddress = "0xDdAe60D26fbC2E1728b5D2Eb7c88eF80109D995A"
 minIncomingConfirmations = 0

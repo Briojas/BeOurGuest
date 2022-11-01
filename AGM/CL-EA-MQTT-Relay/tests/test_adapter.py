@@ -16,7 +16,7 @@ def adapter_setup(test_data):
     return a.result
 
 #ipfs  data
-@pytest.mark.parametrize('vehicle_script_cids', script_cids)
+# @pytest.mark.parametrize('vehicle_script_cids', script_cids)
 def test_ipfs(vehicle_script_cids):
     test_data = {
         'id': job_run_id, 

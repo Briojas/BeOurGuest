@@ -193,14 +193,14 @@ contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwne
     uint256 private fee;
     
     /**
-     * Network: Kovan
-     * Oracle: 0xDdAe60D26fbC2E1728b5D2Eb7c88eF80109D995A
+     * Network: Goerli
+     * Oracle: 0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0
      * Job IDs: below
      * Fee: 0.01 LINK 
      */
     constructor(uint score_reset_interval_sec, uint retry_submitting_interval_sec, uint retry_scoring_interval_sec) ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();
-        oracle = 0xDdAe60D26fbC2E1728b5D2Eb7c88eF80109D995A;
+        oracle = 0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0;
         job_id_scores_pubsub =      "c43bf8107b5b430598f25ca17a1b2b73";
         job_id_ipfs =               "a61db4ea92a543228634e641e979a74e";
         fee = 0.01 * (10 ** 18);
@@ -294,17 +294,25 @@ contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwne
         on the MQTT broker(s) utilized by the Node's External Adapter managing the game's state.
      */
     function execute_submission() private returns (bytes32 requestId){
+        string memory action = "publish";
         string memory topic = "script";
         string memory payload = game.pull_ticket();
         game.update_state(); //States: READY -> EXECUTING
-        return call_ipfs(topic, payload); //qos and retained flags ignored
+
+            //TODO: test qos levels 
+        return call_pubsub(action, topic, 0, payload, 1); 
+            
+            //now sending ipfs CID directly to hardware for processing
+            //hardware will query ipfs for the json script, and execute locally
+            //"call_ipfs()" not needed currently, but may reimplement for future functionality
+        //return call_ipfs(topic, payload); //qos and retained flags ignored
     }
     function collect_score() private returns (bytes32 requestId){
         string memory action = "subscribe";
         game.update_state(); //States: EXECUTED -> COLLECTING
-        return call_pubsub_scores(action, score_topic, 0, 0, 0); //payload and retained flag ignored
+        return call_pubsub(action, score_topic, 0, 0, 0); //payload and retained flag ignored
     }
-    function call_pubsub_scores(
+    function call_pubsub(
         string memory _action, 
         string memory _topic, 
         int16 _qos, 
@@ -323,24 +331,26 @@ contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwne
             // Sends the request
             return sendChainlinkRequestTo(oracle, request, fee);
     }
-    function call_ipfs( 
-        string memory _topic, 
-        string memory _payload
-        ) private returns (bytes32 requestId){
-            string memory action = "ipfs";
+
+    // function call_ipfs( 
+    //     string memory _topic, 
+    //     string memory _payload
+    //     ) private returns (bytes32 requestId){
+    //         string memory action = "ipfs";
             
-            Chainlink.Request memory request = buildChainlinkRequest(job_id_ipfs, address(this), this.fulfill_execution_request.selector);
+    //         Chainlink.Request memory request = buildChainlinkRequest(job_id_ipfs, address(this), this.fulfill_execution_request.selector);
             
-            // Set the params for the external adapter
-            request.add("action", action); //"ipfs"
-            request.add("topic", _topic); //subtasks: "script"
-            request.addInt("qos", 0); //unused
-            request.add("payload", _payload); //IPFS CID
-            request.addInt("retain", 0); //unused
+    //         // Set the params for the external adapter
+    //         request.add("action", action); //"ipfs"
+    //         request.add("topic", _topic); //subtasks: "script"
+    //         request.addInt("qos", 0); //unused
+    //         request.add("payload", _payload); //IPFS CID
+    //         request.addInt("retain", 0); //unused
             
-            // Sends the request
-            return sendChainlinkRequestTo(oracle, request, fee);
-    }
+    //         // Sends the request
+    //         return sendChainlinkRequestTo(oracle, request, fee);
+    // }
+
     function fulfill_execution_request(bytes32 _requestId, bool status) public recordChainlinkFulfillment(_requestId){
         emit executed_ticket(
             game.data[game.tickets.curr_ticket_key].player,
