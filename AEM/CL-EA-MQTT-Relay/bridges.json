@@ -9,8 +9,8 @@
             "env": null
         },
         {
-            "name": "Public_Test_Broker_HIVEMQ",
-            "host": "broker.hivemq.com",
+            "name": "Public_Test_Broker_A",
+            "host": "broker.emqx.io",
             "port": 1883,
             "user": null,
             "key": null,

@@ -155,23 +155,9 @@ class Bridge(object):
             'payload': None
         })
         self.__await_broker_callback(
-            self.client.publish,
-            data['topic'],
-            0,
-            0,
-            0
-        )
-        self.__await_broker_callback(
             self.client.subscribe,
             data['topic'],
             data['qos']
-        )
-        self.__await_broker_callback(
-            self.client.publish,
-            data['topic'],
-            0,
-            0,
-            0
         )
 
     def publish(self, data):
