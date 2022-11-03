@@ -167,7 +167,7 @@ contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwne
     uint private retry_submitting_interval;
     uint private retry_scoring_interval;
     uint private retry_time_stamp;
-    string private score_topic = "/daderpyderby/score";
+    string private score_topic = "/score";
     event submission_ticket(
         address player,
         uint ticket,
@@ -188,8 +188,8 @@ contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwne
         //node data
     using Chainlink for Chainlink.Request;
     address private oracle;
-    bytes32 private job_id_scores_pubsub;
-    bytes32 private job_id_ipfs;
+    bytes32 private job_id_pubsub_int;
+    bytes32 private job_id_pub_str;
     uint256 private fee;
     
     /**
@@ -201,8 +201,8 @@ contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwne
     constructor(uint score_reset_interval_sec, uint retry_submitting_interval_sec, uint retry_scoring_interval_sec) ConfirmedOwner(msg.sender) {
         setPublicChainlinkToken();
         oracle = 0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0;
-        job_id_scores_pubsub =      "c43bf8107b5b430598f25ca17a1b2b73";
-        job_id_ipfs =               "a61db4ea92a543228634e641e979a74e";
+        job_id_pubsub_int =  "d9de30463fdd429aab7c2ed8dde708d8";
+        job_id_pub_str =  "01c687c6a43e4b4a80d9f0f62eed6a5c";
         fee = 0.01 * (10 ** 18);
         game.initiate();
         retry_submitting_interval = retry_submitting_interval_sec; //time to retry running a submitted ticket
@@ -300,7 +300,7 @@ contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwne
         game.update_state(); //States: READY -> EXECUTING
 
             //TODO: test qos levels 
-        return call_pubsub(action, topic, 0, payload, 1); 
+        return call_pubsub_str(action, topic, 0, payload, 1); 
             
             //now sending ipfs CID directly to hardware for processing
             //hardware will query ipfs for the json script, and execute locally
@@ -310,46 +310,47 @@ contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwne
     function collect_score() private returns (bytes32 requestId){
         string memory action = "subscribe";
         game.update_state(); //States: EXECUTED -> COLLECTING
-        return call_pubsub(action, score_topic, 0, 0, 0); //payload and retained flag ignored
+        return call_pubsub_int(action, score_topic, 0, 0, 0); //payload and retained flag ignored
     }
-    function call_pubsub(
+    function call_pubsub_int(
         string memory _action, 
         string memory _topic, 
         int16 _qos, 
         int256 _payload, 
         int16 _retain
         ) private returns (bytes32 requestId){
-            Chainlink.Request memory request = buildChainlinkRequest(job_id_scores_pubsub, address(this), this.fulfill_score.selector);
+            Chainlink.Request memory request = buildChainlinkRequest(job_id_pubsub_int, address(this), this.fulfill_score.selector);
             
             // Set the params for the external adapter
             request.add("action", _action); //options: "publish", "subscribe"
             request.add("topic", _topic);
             request.addInt("qos", _qos);
-            request.addInt("payload", _payload);
+            request.addInt("payload", _payload); //int
             request.addInt("retain", _retain);
             
             // Sends the request
             return sendChainlinkRequestTo(oracle, request, fee);
     }
 
-    // function call_ipfs( 
-    //     string memory _topic, 
-    //     string memory _payload
-    //     ) private returns (bytes32 requestId){
-    //         string memory action = "ipfs";
+    function call_pubsub_str( 
+        string memory _action, 
+        string memory _topic, 
+        int16 _qos,  
+        string memory _payload,
+        int16 _retain
+        ) private returns (bytes32 requestId){
+            Chainlink.Request memory request = buildChainlinkRequest(job_id_pub_str, address(this), this.fulfill_execution_request.selector);
             
-    //         Chainlink.Request memory request = buildChainlinkRequest(job_id_ipfs, address(this), this.fulfill_execution_request.selector);
+            // Set the params for the external adapter
+            request.add("action", _action); //options: "publish", "subscribe"
+            request.add("topic", _topic); 
+            request.addInt("qos", 0);
+            request.add("payload", _payload); //string
+            request.addInt("retain", 0);
             
-    //         // Set the params for the external adapter
-    //         request.add("action", action); //"ipfs"
-    //         request.add("topic", _topic); //subtasks: "script"
-    //         request.addInt("qos", 0); //unused
-    //         request.add("payload", _payload); //IPFS CID
-    //         request.addInt("retain", 0); //unused
-            
-    //         // Sends the request
-    //         return sendChainlinkRequestTo(oracle, request, fee);
-    // }
+            // Sends the request
+            return sendChainlinkRequestTo(oracle, request, fee);
+    }
 
     function fulfill_execution_request(bytes32 _requestId, bool status) public recordChainlinkFulfillment(_requestId){
         emit executed_ticket(
