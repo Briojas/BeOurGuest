@@ -88,7 +88,7 @@ library Queue_Management {
         self.tickets.next_submission_key = Iterator.unwrap(iterator_find_next_deleted(self, 0));
     }
 
-    function find_ticket_key(Queue storage self, uint ticket) internal returns (uint goal_key){
+    function find_ticket_key(Queue storage self, uint ticket) internal view returns (uint goal_key){
         for(
             Iterator key = iterate_start(self);
             iterate_valid(self, key);
@@ -194,12 +194,13 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
     
     /**
      * Network: Goerli
+     * Link token: 0x326C977E6efc84E512bB9C30f76E30c160eD06FB
      * Oracle: 0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0
      * Job IDs: below
      * Fee: 0.01 LINK 
      */
     constructor(uint score_reset_interval_sec, uint retry_submitting_interval_sec, uint retry_scoring_interval_sec) ConfirmedOwner(msg.sender) {
-        setPublicChainlinkToken();
+        setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
         oracle = 0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0;
         job_id_pubsub_int =  "d9de30463fdd429aab7c2ed8dde708d8";
         job_id_pub_str =  "01c687c6a43e4b4a80d9f0f62eed6a5c";
@@ -213,7 +214,7 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
         high_score_time_stamp = block.timestamp;
     }
 
-    function checkUpkeep(bytes calldata checkData) external override returns (bool upkeepNeeded, bytes memory performData) {
+    function checkUpkeep(bytes calldata checkData) external override view returns (bool upkeepNeeded, bytes memory performData) {
             //high score may be reset while processing a submission
         upkeepNeeded = (block.timestamp - high_score_time_stamp) > high_score.reset_interval;
 
@@ -300,7 +301,7 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
         game.update_state(); //States: READY -> EXECUTING
 
             //TODO: test qos levels 
-        return call_pubsub_str(action, topic, 0, payload, 1); 
+        return call_pub_str(action, topic, 0, payload, 1); 
             
             //now sending ipfs CID directly to hardware for processing
             //hardware will query ipfs for the json script, and execute locally
@@ -332,7 +333,7 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
             return sendChainlinkRequestTo(oracle, request, fee);
     }
 
-    function call_pubsub_str( 
+    function call_pub_str( 
         string memory _action, 
         string memory _topic, 
         int16 _qos,  
@@ -342,11 +343,11 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
             Chainlink.Request memory request = buildChainlinkRequest(job_id_pub_str, address(this), this.fulfill_execution_request.selector);
             
             // Set the params for the external adapter
-            request.add("action", _action); //options: "publish", "subscribe"
+            request.add("action", _action); //options: "publish"
             request.add("topic", _topic); 
-            request.addInt("qos", 0);
+            request.addInt("qos", _qos);
             request.add("payload", _payload); //string
-            request.addInt("retain", 0);
+            request.addInt("retain", _retain);
             
             // Sends the request
             return sendChainlinkRequestTo(oracle, request, fee);
