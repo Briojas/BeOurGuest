@@ -8,6 +8,7 @@ def main():
     derby_contract = DaDerpyDerby[-1]
     key = 0
     #derby_contract.address = 0xD873d7906c7c58C0e89C347E346504F09FD0E838 #latest valid contract address
+    #bog_contract.address = 0x43b3046B30f5fdb342b608581050052f3fAB5E7c;
     script_cids = [
         'bafybeiguqxkjrp23hstv7gnyxvjaj3g65uamjj46orho7mxcjbrskjuo5u']
     #     'bafybeidgztg2wqzqhvohs675mj3ahhgaiugjbq4ftb2xvensfdrhus3sga',
