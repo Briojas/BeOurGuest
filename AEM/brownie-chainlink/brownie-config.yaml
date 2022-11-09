@@ -15,12 +15,13 @@ compiler:
 autofetch_sources: True
 # Uncomment to use the .env file
 dotenv: .env
-networks:
-  default: goerli
-  goerli:
-    link_token: "0x326C977E6efc84E512bB9C30f76E30c160eD06FB"
-    keyhash: "0x6c3699283bda56ad74f6b855546325b68d482e983852a7a82979cc4807b641f4"
-    fee: 100000000000000000
-    oracle: "0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0"
+# networks:
+#   default: goerli
+  # goerli:
+    # link_token: "0x326C977E6efc84E512bB9C30f76E30c160eD06FB"
+    # fee: 100000000000000
+    # oracle: "0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0"
 wallets:
   from_key: ${PRIVATE_KEY}
+settings:
+  gas_limit: "1000000000"

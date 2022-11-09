@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 
 import "@chainlink/contracts/src/v0.8/ChainlinkClient.sol";
-import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
+import "@chainlink/contracts/src/v0.8/AutomationCompatible.sol";
 import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 
     //using the "Iterable Mappings" Solidity example
@@ -158,7 +158,7 @@ library Queue_Management {
     }
 }
 
-contract BeOurGuest is ChainlinkClient, KeeperCompatibleInterface, ConfirmedOwner{
+contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedOwner{
         //game data
     Queue public game;
     using Queue_Management for Queue;
