@@ -15,6 +15,9 @@ const char timeServer3[] = "time.google.com";
 PN532_I2C pn532i2c(Wire);
 PN532 nfc(pn532i2c);
 #define NUM_RFID_READERS 4 //max: 8 devices per multiplexer
+  /*TCA9548A I2C multiplexer guide:
+    https://randomnerdtutorials.com/tca9548a-i2c-multiplexer-esp32-esp8266-arduino/
+  */
 
 //LEDs
 #include <FastLED.h>

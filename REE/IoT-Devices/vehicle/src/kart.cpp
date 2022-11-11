@@ -34,6 +34,11 @@ void readSubs(String &topic, String &payload){
     }
 }
 
+//Gyro & Accelerometer MPU6050
+/*Programming guide source
+  https://randomnerdtutorials.com/esp32-mpu-6050-accelerometer-gyroscope-arduino/
+*/
+
 //General inits and defs
 MQTT_Client_Handler kart_mqtt_client(mqtt_client, wifi_client, brokerName, subs, numSubs, readSubs, port); //initialize the mqtt handler
 String getTimestamp();
