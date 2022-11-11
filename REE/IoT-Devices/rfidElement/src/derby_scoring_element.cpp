@@ -7,14 +7,13 @@ const char timeServer1[] = "pool.ntp.org";
 const char timeServer2[] = "time.nist.gov"; 
 const char timeServer3[] = "time.google.com"; 
 
-//RFID Card
-#include <MFRC522.h> //library responsible for communicating with the module RFID-RC522
-#include <SPI.h> //library responsible for communicating of SPI bus
-#define SS_PIN 5
-#define RST_PIN 33
-MFRC522 mfrc522(SS_PIN, RST_PIN);
-//TODO: add pubsub logic to release/lock when rfid reading can occur
-int delay_between_reads_ms;
+//RFID PN532 Card
+#include <Wire.h>
+#include <PN532.h>
+#include <PN532_I2C.h>
+#include <NfcAdapter.h>
+PN532_I2C pn532i2c(Wire);
+PN532 nfc(pn532i2c);
 
 //LEDs
 #include <FastLED.h>
@@ -32,22 +31,21 @@ String currentProfile;
 //WiFi
 #include <wifiSetup.h>
 #include <wifiLogin.h>
-//TODO: Manage secure vs unsecure wifi_client selection based on MQTT port selection
-// WiFiClient wifi_client;
-WiFiClientSecure wifi_client;
+WiFiClient wifi_client;
+
 
 //MQTT
 #include <mqttSetup.h>
 #include <mqttLogin.h>
 MQTTClient mqtt_client;
 const int port = 8883;
-const char clientName[] = "score_element_1"; //must be >= 8 chars
-const int numPubs = 2;
+const char clientName[] = "rfidElement";
+const int numPubs = 1;
 mqtt_pubSubDef_t pubs[numPubs];
 const int numSubs = 1;
 mqtt_pubSubDef_t subs[numSubs];
-  //callback function for grabbing sub data
-void readSubs(String &topic, String &payload){ 
+  //callback function
+void readSubs(String &topic, String &payload){
     Serial.println("incoming: " + topic + " - " + payload);
     for(int i=0; i < numSubs; i++){
         if(topic == subs[i].topic){ //check each message in the array for the correct subscriber
@@ -59,83 +57,81 @@ void readSubs(String &topic, String &payload){
 
 //General inits and defs
 MQTT_Client_Handler rfid_mqtt_client(mqtt_client, wifi_client, brokerName, subs, numSubs, readSubs, port); //initialize the mqtt handler
-void checkAndPublishTag(int read_delay_ms);
+void checkAndPublishTag();
 void updateLEDs(int numToShow);
 String getTimestamp();
+
+int tempNum;
+
 
 void setup() {
   Serial.begin(115200);
 ///////////////   RFID   ///////////////
-  SPI.begin(); // Init SPI bus
-  mfrc522.PCD_Init(); // Init MFRC522 readers
-  delay_between_reads_ms = 1000;
-  delay(4);				// time after init to be fully setup and ready 
+    // initiates the board to start reading
+  nfc.begin();
+
+  // Connected, show version
+  uint32_t versiondata = nfc.getFirmwareVersion();
+  if (! versiondata){
+    Serial.println("PN53x card not found!");
+  } else {
+      //port
+    Serial.print("Found chip PN5"); Serial.println((versiondata >> 24) & 0xFF, HEX);
+    Serial.print("Firmware version: "); Serial.print((versiondata >> 16) & 0xFF, DEC);
+    Serial.print('.'); Serial.println((versiondata >> 8) & 0xFF, DEC);
+      // Set the max number of retry attempts to read from a card
+      // This prevents us from waiting forever for a card, which is
+      // the default behaviour of the PN532.
+    nfc.setPassiveActivationRetries(0xFF);
+      // configure board to read RFID tags
+    nfc.SAMConfig();
+  }
 ///////////////   LEDS   ///////////////
   FastLED.addLeds<CHIPSET, LEDS_DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
   FastLED.setBrightness(BRIGHTNESS);
+  tempNum = 0;
 ///////////////   WiFi   ///////////////
   wifi_init(wifiName, wifiPW);
-  wifi_client.setInsecure(); //TODO: only call when WiFiClientSecure used
 ///////////////   MQTT   ///////////////
   String deviceName = clientName; //converting const char to str
                 //$$ SUBS $$//
-  //   //LED assignment
-  // subs[0].topic = "/" + deviceName + "/LEDs"; //for now, LEDs are being set directly to score
-  // subs[0].qos = 2;
-    //score data
-  subs[0].topic = "/" + deviceName + "/score"; 
-  subs[0].qos = 2;
+    //listening to broker status
+  subs[0].topic = "/LEDs"; 
                 //$$ PUBS $$//
-    //rfid readings
+    //posting score data from rfid readings
   pubs[0].topic = "/" + deviceName + "/tag";
   pubs[0].qos = 2; 
-  pubs[0].retained = true;
-    //score updates
-  pubs[1].topic = "/" + deviceName + "/score";
-  pubs[1].payload = "0"; //initial value
-  pubs[1].qos = 2; 
-  pubs[1].retained = true;
                 //$$ connect $$//
-  rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
-                //$$ INIT PUBSUBS $$//
-  rfid_mqtt_client.publish(pubs[1]);
+  // rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
 ///////////////   Time   ///////////////
   configTime(-5 * 3600, 0, timeServer1, timeServer2, timeServer3);
 }
 
 void loop() {
-  if(!rfid_mqtt_client.loop()){
-    rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
-  }
-  checkAndPublishTag(delay_between_reads_ms);
-  updateLEDs(subs[0].payload.toInt());
+  // if(!rfid_mqtt_client.loop()){
+  //   rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
+  // }
+
+  checkAndPublishTag();
 }
 
-void checkAndPublishTag(int read_delay_ms){
-  if (!mfrc522.PICC_IsNewCardPresent()){return;} //waiting for an RFID tag to approach
-  Serial.println("checking card...");
-  if (!mfrc522.PICC_ReadCardSerial()){return;} //check if it's readable
-  Serial.println("card reads:");
+void checkAndPublishTag(){
+  bool success; 
+  uint8_t uid[] = { 0, 0, 0, 0, 0, 0, 0 };  // Buffer to store the returned UID
+  uint8_t uidLength;  // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
 
-    //obtain the tag's UID
-  String uid = "";
-  byte letter;
-  for (letter = 0; letter < mfrc522.uid.size; letter++) {
-     uid.concat(String(mfrc522.uid.uidByte[letter] < 0x10 ? " 0" : " "));
-     uid.concat(String(mfrc522.uid.uidByte[letter], HEX));
-  }
+  success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
+  if (success) {
+    Serial.print("read the card: ");
+    for (uint8_t i=0; i < uidLength; i++){
+      Serial.print(uid[i], HEX);
+    }
+    Serial.println("");
 
-    //publish the uid read at the timestamp
-  uid.toUpperCase();
-  Serial.print(uid);
-  pubs[0].payload = uid + " @" + getTimestamp();
-  rfid_mqtt_client.publish(pubs[0]);
-  int device_score = subs[0].payload.toInt();
-  device_score ++;
-  pubs[1].payload = String(device_score);
-  rfid_mqtt_client.publish(pubs[1]);
-    //wait before reading, scoring, and publishing another tag  
-  delay(read_delay_ms); 
+    tempNum ++;
+    updateLEDs(tempNum);
+  } 
+  delay(10);
 }
 
 void updateLEDs(int numToShow){
