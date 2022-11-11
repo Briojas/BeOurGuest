@@ -14,6 +14,7 @@ const char timeServer3[] = "time.google.com";
 #include <NfcAdapter.h>
 PN532_I2C pn532i2c(Wire);
 PN532 nfc(pn532i2c);
+#define NUM_RFID_READERS 4 //max: 8 devices per multiplexer
 
 //LEDs
 #include <FastLED.h>
@@ -56,6 +57,7 @@ void readSubs(String &topic, String &payload){
 }
 
 //General inits and defs
+void multiplexer(uint8_t bus)
 MQTT_Client_Handler rfid_mqtt_client(mqtt_client, wifi_client, brokerName, subs, numSubs, readSubs, port); //initialize the mqtt handler
 void checkAndPublishTag();
 void updateLEDs(int numToShow);
@@ -67,24 +69,28 @@ int tempNum;
 void setup() {
   Serial.begin(115200);
 ///////////////   RFID   ///////////////
-    // initiates the board to start reading
-  nfc.begin();
-
-  // Connected, show version
-  uint32_t versiondata = nfc.getFirmwareVersion();
-  if (! versiondata){
-    Serial.println("PN53x card not found!");
-  } else {
-      //port
-    Serial.print("Found chip PN5"); Serial.println((versiondata >> 24) & 0xFF, HEX);
-    Serial.print("Firmware version: "); Serial.print((versiondata >> 16) & 0xFF, DEC);
-    Serial.print('.'); Serial.println((versiondata >> 8) & 0xFF, DEC);
-      // Set the max number of retry attempts to read from a card
-      // This prevents us from waiting forever for a card, which is
-      // the default behaviour of the PN532.
-    nfc.setPassiveActivationRetries(0xFF);
-      // configure board to read RFID tags
-    nfc.SAMConfig();
+    // initiates boards on the multiplexer to start reading
+  for(uint8_t i = 0; i < (NUM_RFID_READERS - 1); i++){
+    
+    multiplexer(i); //switch multiplexer to next board
+    //TODO: add function to reset board on startup
+    nfc.begin(); //start board
+      
+      // Connected, show version
+    uint32_t versiondata = nfc.getFirmwareVersion();
+    if (! versiondata){
+      Serial.println("PN53x card not found!");
+    } else {
+        //port
+      Serial.print("Found chip PN5"); Serial.println((versiondata >> 24) & 0xFF, HEX);
+      Serial.print("Firmware version: "); Serial.print((versiondata >> 16) & 0xFF, DEC);
+      Serial.print('.'); Serial.println((versiondata >> 8) & 0xFF, DEC);
+        // Set the max number of retry attempts to read from a card
+        // This prevents us from waiting forever for a card, which is
+        // the default behaviour of the PN532.
+      nfc.setPassiveActivationRetries(0xFF);
+        // configure board to read RFID tags
+      nfc.SAMConfig();
   }
 ///////////////   LEDS   ///////////////
   FastLED.addLeds<CHIPSET, LEDS_DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalSMD5050);
@@ -111,8 +117,19 @@ void loop() {
   // if(!rfid_mqtt_client.loop()){
   //   rfid_mqtt_client.connect(clientName, brokerLogin, brokerPW);
   // }
+   for(uint8_t i = 0; i < (NUM_RFID_READERS - 1); i++){
+    
+    multiplexer(i); //switch multiplexer to next board
+    checkAndPublishTag();
+    //TODO: publish tag to topic based on multiplexer channel
+   }
+}
 
-  checkAndPublishTag();
+void multiplexer(uint8_t bus){
+  Wire.beginTransmission(0x70);  // TCA9548A address
+  Wire.write(1 << bus);          // send byte to select bus
+  Wire.endTransmission();
+  Serial.print(bus);
 }
 
 void checkAndPublishTag(){
