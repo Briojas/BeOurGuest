@@ -1,20 +1,40 @@
-import Link from "next/link";
 import { Fragment } from "react";
+import Head from "next/head";
 
-function WatchPage() {
+function HomePage(props) {
   return (
     <Fragment>
-      <h1>The Home Page</h1>;
-      <ul>
-        <li>
-          <Link href={"/play"}>Play</Link>
-        </li>
-        <li>
-          <a href="/host">Host</a>
-        </li>
-      </ul>
+      <Head>
+        <title>Be Our Pest</title>
+        <meta name="description" content="" />
+      </Head>
+      <h1>Welcome!</h1>
     </Fragment>
   );
 }
 
-export default WatchPage;
+////// hosting on Fleek, so won't use dynamic pre-rendering
+// export async function getServerSideProps(context) {
+//   const req = context.req; //request
+//   const res = context.res; //response
+//   //fetch data from an API
+
+//   return {
+//     props: {
+//       meetups: DUMMY_DATA,
+//     },
+//   };
+// }
+
+//for static pre-rendering, only ran when project is compiled for production
+export async function getStaticProps() {
+  //fetch data from API or database
+
+  //TODO: pull data from contracts
+  return {
+    props: {},
+    revalidate: 60, //re-fetches data every 60 seconds (but also fetches when built)
+  };
+}
+
+export default HomePage;

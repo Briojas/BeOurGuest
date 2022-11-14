@@ -1,19 +1,71 @@
-import classes from './MainNavigation.module.css';
+import Link from "next/link";
+import classes from "./MainNavigation.module.css";
+
+import { useWeb3React } from "@web3-react/core";
+import { InjectedConnector } from "@web3-react/injected-connector";
+import { useState, useEffect } from "react";
+
+export const injected = new InjectedConnector();
 
 function MainNavigation() {
+  const [hasMetamask, setHasMetamask] = useState(false);
+
+  useEffect(() => {
+    if (typeof window.ethereum !== "undefined") {
+      setHasMetamask(true);
+    }
+  });
+
+  const {
+    active,
+    activate,
+    chainId,
+    account,
+    library: provider,
+  } = useWeb3React();
+
+  async function connect() {
+    if (typeof window.ethereum !== "undefined") {
+      try {
+        await activate(injected);
+        setHasMetamask(true);
+      } catch (e) {
+        console.log(e);
+      }
+    }
+  }
 
   return (
     <header className={classes.header}>
-      <div className={classes.logo}>React Meetups</div>
+      <div className={classes.logo}>
+        <Link href="/">Be Our Pest</Link>
+      </div>
       <nav>
         <ul>
           <li>
-            <Link to='/'>All Meetups</Link>
+            <Link href="/watch">Watch</Link>
           </li>
           <li>
-            <Link to='/new-meetup'>Add New Meetup</Link>
+            <Link href="/play">Play</Link>
+          </li>
+          <li>
+            <Link href="/host">Host</Link>
+          </li>
+          <li>
+            <Link href="/about">About</Link>
           </li>
         </ul>
+        {hasMetamask ? (
+          active ? (
+            "Connected! "
+          ) : (
+            <button onClick={() => connect()}>Connect</button>
+          )
+        ) : (
+          "Please install metamask"
+        )}
+
+        {/* {active ? <button onClick={() => execute()}>Execute</button> : ""} */}
       </nav>
     </header>
   );
