@@ -1,0 +1,11 @@
+{
+  "build": {
+    "image": "fleek/next-js",
+    "command": "yarn && yarn build && yarn export",
+    "publicDir": "out",
+    "baseDir": "gui",
+    "environment": {
+      "SOME_ENV": "Build finished!"
+    }
+  }
+}
