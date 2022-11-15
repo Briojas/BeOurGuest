@@ -1,13 +1,18 @@
 import Link from "next/link";
 // import classes from "./MainNavigation.module.css";
 
-import { useWeb3React } from "@web3-react/core";
+import { Web3Provider } from "@ethersproject/providers";
+import { useWeb3React, Web3ReactProvider } from "@web3-react/core";
 import { InjectedConnector } from "@web3-react/injected-connector";
 import { useState, useEffect } from "react";
 
 export const injected = new InjectedConnector();
 
-function MainNavigation() {
+// const getLibrary = (provider) => {
+//   return new Web3Provider(provider);
+// };
+
+function NavBar() {
   const [hasMetamask, setHasMetamask] = useState(false);
 
   useEffect(() => {
@@ -36,39 +41,35 @@ function MainNavigation() {
   }
 
   return (
-    <header className="">
+    <header>
       <div className="">
-        <Link href="/">Be Our Pest</Link>
+        <Link href="/"> BeOurPest </Link>
       </div>
-      <nav>
-        <ul>
-          <li>
-            <Link href="/watch">Watch</Link>
-          </li>
-          <li>
-            <Link href="/play">Play</Link>
-          </li>
-          <li>
-            <Link href="/host">Host</Link>
-          </li>
-          <li>
-            <Link href="/about">About</Link>
-          </li>
-        </ul>
+      <nav className="">
+        <i>
+          <Link href="/watch"> Watch |</Link>
+        </i>
+        <i>
+          <Link href="/engage"> Engage |</Link>
+        </i>
+        <i>
+          <Link href="/host"> Host |</Link>
+        </i>
+        <i>
+          <Link href="/about"> About |</Link>
+        </i>
         {hasMetamask ? (
           active ? (
-            "Connected! "
+            <i> Wallet: {account} </i>
           ) : (
-            <button onClick={() => connect()}>Connect</button>
+            <button onClick={() => connect()}> Connect Wallet </button>
           )
         ) : (
-          "Please install metamask"
+          <Link href="https://metamask.io/"> Install Metamask </Link>
         )}
-
-        {/* {active ? <button onClick={() => execute()}>Execute</button> : ""} */}
       </nav>
     </header>
   );
 }
 
-export default MainNavigation;
+export default NavBar;

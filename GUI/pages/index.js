@@ -26,15 +26,15 @@ function HomePage(props) {
 //   };
 // }
 
-//for static pre-rendering, only ran when project is compiled for production
-export async function getStaticProps() {
-  //fetch data from API or database
+// //for static pre-rendering, only ran when project is compiled for production
+// export async function getStaticProps() {
+//   //fetch data from API or database
 
-  //TODO: pull data from contracts
-  return {
-    props: {},
-    revalidate: 60, //re-fetches data every 60 seconds (but also fetches when built)
-  };
-}
+//   //TODO: pull data from contracts
+//   return {
+//     props: {},
+//     revalidate: 60, //re-fetches data every 60 seconds (but also fetches when built)
+//   };
+// }
 
 export default HomePage;
