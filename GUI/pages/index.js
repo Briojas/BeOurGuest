@@ -8,7 +8,8 @@ function HomePage(props) {
         <title>Be Our Pest</title>
         <meta name="description" content="" />
       </Head>
-      <h1>Welcome!</h1>
+      <h1>Madison Is Gorgeous</h1>
+      <p>I love her.</p>
     </Fragment>
   );
 }
