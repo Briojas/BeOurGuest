@@ -1,7 +1,7 @@
 {
   "build": {
     "image": "fleek/next-js",
-    "command": "cd gui && yarn && yarn build && yarn export",
+    "command": "cd GUI && yarn && yarn build && yarn export",
     "publicDir": "out",
     "baseDir": "",
     "environment": {
