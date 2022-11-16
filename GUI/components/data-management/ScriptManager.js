@@ -1,8 +1,8 @@
 import { Fragment, useEffect } from "react";
-import TextareaAutosize from "@mui/material/TextareaAutosize";
 
 function ScriptManager(props) {
-  const json = {
+  var editor;
+  const script_template = {
     schema: {
       type: "object",
       title: "Car",
@@ -32,12 +32,10 @@ function ScriptManager(props) {
       },
     },
   };
-  // useEffect(() => {
-  //   if (typeof window === "undefined") {
-  //     const container = document.getElementById("script-edit-window");
-  //     editor = JSONEditor(container, {});
-  //   }
-  // }, []);
+  useEffect(() => {
+    const container = document.getElementById("script-edit-window");
+    editor = new JSONEditor(container, script_template);
+  }, []);
 
   async function submit() {
     console.log(editor.getValue());
@@ -47,15 +45,6 @@ function ScriptManager(props) {
     <Fragment>
       <div id="script-edit-window"></div>
       <button onClick={() => submit()}>Submit</button>
-      <div>
-        <TextareaAutosize
-          maxRows={24}
-          aria-label="maximum height"
-          placeholder="Maximum 24 rows"
-          defaultValue=""
-          style={{ width: 600 }}
-        />
-      </div>
     </Fragment>
   );
 }
