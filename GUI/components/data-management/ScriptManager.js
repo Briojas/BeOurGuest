@@ -1,50 +1,104 @@
 import { Fragment, useEffect } from "react";
+// import { basic_person, person } from "../../constants";
 
 function ScriptManager(props) {
   var editor;
-  const script_template = {
+
+  const script_template = [
+    {
+      action: "Straight",
+      power: -25,
+      time: 0.5,
+    },
+  ];
+
+  const editor_config = {
+    // Enable fetching schemas via ajax
+    ajax: true,
+
+    // The schema for the editor
     schema: {
-      type: "object",
-      title: "Car",
-      properties: {
-        make: {
-          type: "string",
-          enum: ["Toyota", "BMW", "Honda", "Ford", "Chevy", "VW"],
-        },
-        model: {
-          type: "string",
-        },
-        year: {
-          type: "integer",
-          enum: [
-            1995, 1996, 1997, 1998, 1999, 2000, 2001, 2002, 2003, 2004, 2005,
-            2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014,
-          ],
-          default: 2008,
-        },
-        safety: {
-          type: "integer",
-          format: "rating",
-          maximum: "5",
-          exclusiveMaximum: false,
-          readonly: false,
+      type: "array",
+      title: "Commands",
+      format: "tabs",
+      items: {
+        title: "Command",
+        headerTemplate: "{{i}} - {{self.action}}",
+        format: "table",
+        properties: {
+          action: {
+            type: "string",
+            enum: ["Stop", "Straight", "Spin", "Strafe"],
+            default: "Straight",
+          },
+          power: {
+            type: "integer",
+            maximum: "100",
+            minimum: "-100",
+            default: "0",
+          },
+          time: {
+            type: "stepper",
+            step: "0.5",
+            minimum: "0",
+            default: "1.5",
+          },
         },
       },
     },
+
+    // Seed the form with a starting value
+    startval: script_template,
+
+    // Disable additional properties
+    no_additional_properties: true,
+
+    // Require all properties by default
+    required_by_default: true,
   };
-  useEffect(() => {
-    const container = document.getElementById("script-edit-window");
-    editor = new JSONEditor(container, script_template);
-  }, []);
+
+  async function validate() {
+    // Get an array of errors from the validator
+    var errors = editor.validate();
+
+    var indicator = document.getElementById("valid_indicator");
+
+    // Not valid
+    if (errors.length) {
+      indicator.style.color = "red";
+      indicator.textContent = "not valid";
+    }
+    // Valid
+    else {
+      indicator.style.color = "green";
+      indicator.textContent = "valid";
+    }
+  }
 
   async function submit() {
     console.log(editor.getValue());
+    //send to api?
   }
+
+  async function reset() {
+    editor.setValue(script_template);
+  }
+
+  useEffect(() => {
+    const container = document.getElementById("script-edit-window");
+    editor = new JSONEditor(container, editor_config);
+
+    //set editor css themeing here
+
+    editor.on("change", validate);
+  }, []);
 
   return (
     <Fragment>
-      <div id="script-edit-window"></div>
+      <span id="valid_indicator"></span>
       <button onClick={() => submit()}>Submit</button>
+      <button onClick={() => reset()}>Reset Form</button>
+      <div id="script-edit-window"></div>
     </Fragment>
   );
 }
