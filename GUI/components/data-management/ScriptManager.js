@@ -90,8 +90,6 @@ function ScriptManager(props) {
     const container = document.getElementById("script-edit-window");
     editor = new JSONEditor(container, editor_config);
 
-    //set editor css themeing here
-
     editor.on("change", validate);
   }, []);
 

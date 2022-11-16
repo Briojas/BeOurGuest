@@ -20,7 +20,23 @@ function MyApp({ Component, pageProps }) {
       <Head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
         <meta charSet="utf-8" />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/spectre.css/dist/spectre.min.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/spectre.css/dist/spectre-exp.min.css"
+        />
+        <link
+          rel="stylesheet"
+          href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css"
+        />
         <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+        <script>
+          JSONEditor.defaults.theme = 'spectre'; JSONEditor.defaults.iconlib =
+          'spectre';
+        </script>
       </Head>
       <Web3ReactProvider getLibrary={getLibrary}>
         <Layout>
