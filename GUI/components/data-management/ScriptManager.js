@@ -7,7 +7,7 @@ function ScriptManager(props) {
   const script_template = [
     {
       action: "Straight",
-      power: -25,
+      power: 25,
       time: 0.5,
     },
   ];
@@ -78,6 +78,7 @@ function ScriptManager(props) {
   async function submit() {
     console.log(editor.getValue());
     //send to api?
+    props.onNewScript(editor.getValue());
   }
 
   async function reset() {

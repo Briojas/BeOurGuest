@@ -14,7 +14,7 @@ async function handler(req, res) {
     const params = {
       ACL: "public-read",
       Bucket: "3d6e4700-df7d-4462-8bad-0e6d3c2b21f1-bucket",
-      Key: "IPFS-Script",
+      Key: "IPFS-Script.json",
       Body: "TBD",
     };
     const request = s3.putObject(params);
