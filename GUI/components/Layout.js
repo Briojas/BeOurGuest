@@ -1,5 +1,4 @@
-import NavBar from "./NavBar";
-// import classes from "./Layout.module.css";
+import NavBar from "./navigation/NavBar";
 
 function Layout(props) {
   return (

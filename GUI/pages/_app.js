@@ -19,6 +19,8 @@ function MyApp({ Component, pageProps }) {
     <Fragment>
       <Head>
         <meta name="viewport" content="initial-scale=1, width=device-width" />
+        <meta charSet="utf-8" />
+        <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
       </Head>
       <Web3ReactProvider getLibrary={getLibrary}>
         <Layout>

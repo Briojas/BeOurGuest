@@ -13,15 +13,18 @@
     "@emotion/styled": "^11.10.5",
     "@ethersproject/providers": "^5.5.3",
     "@fontsource/roboto": "^4.5.8",
+    "@json-editor/json-editor": "^2.9.0-beta.0",
     "@mui/icons-material": "^5.10.14",
     "@mui/material": "^5.10.14",
     "@web3-react/core": "^6.1.9",
     "@web3-react/injected-connector": "^6.0.7",
+    "aws-sdk": "^2.1254.0",
     "babel": "^6.23.0",
     "ethers": "^5.5.4",
     "next": "12.0.9",
     "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react-dom": "17.0.2",
+    "react-json-tree": "^0.17.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.13",
