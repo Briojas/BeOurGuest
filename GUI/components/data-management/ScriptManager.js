@@ -4,13 +4,11 @@ import { Fragment, useEffect } from "react";
 function ScriptManager(props) {
   var editor;
 
-  const script_template = [
-    {
-      action: "Straight",
-      power: 25,
-      time: 0.5,
-    },
-  ];
+  const script_template = {
+    action: "Straight",
+    power: 25,
+    time: 0.5,
+  };
 
   const editor_config = {
     // Enable fetching schemas via ajax
@@ -28,7 +26,7 @@ function ScriptManager(props) {
         properties: {
           action: {
             type: "string",
-            enum: ["Stop", "Straight", "Spin", "Strafe"],
+            enum: ["Straight", "Spin", "Strafe"],
             default: "Straight",
           },
           power: {
@@ -38,8 +36,7 @@ function ScriptManager(props) {
             default: "0",
           },
           time: {
-            type: "stepper",
-            step: "0.5",
+            type: "number",
             minimum: "0",
             default: "1.5",
           },
@@ -77,8 +74,12 @@ function ScriptManager(props) {
 
   async function submit() {
     console.log(editor.getValue());
-    //send to api?
-    props.onNewScript(editor.getValue());
+    const json_formatted = {
+      script: editor.getValue(),
+    };
+    console.log(json_formatted);
+    //////send to api
+    props.onNewScript(json_formatted);
   }
 
   async function reset() {
