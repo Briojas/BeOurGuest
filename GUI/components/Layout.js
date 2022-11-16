@@ -2,9 +2,9 @@ import NavBar from "./navigation/NavBar";
 
 function Layout(props) {
   return (
-    <div>
+    <div className="">
       <NavBar />
-      <main>{props.children}</main>
+      <main className="max-w-md mx-auto my-12">{props.children}</main>
     </div>
   );
 }
