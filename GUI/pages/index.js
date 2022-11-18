@@ -1,6 +1,10 @@
 import { Fragment } from "react";
 import Head from "next/head";
 
+import Container from "@mui/material/Container";
+import Typography from "@mui/material/Typography";
+import Box from "@mui/material/Box";
+
 function HomePage(props) {
   return (
     <Fragment>
@@ -8,8 +12,18 @@ function HomePage(props) {
         <title>Be Our Pest</title>
         <meta name="description" content="" />
       </Head>
-      <h1>Madison Is Gorgeous</h1>
-      <p>I love her.</p>
+      <Container maxWidth="sm">
+        <Box sx={{ my: 4 }}>
+          <Typography variant="h4" component="h1" gutterBottom>
+            Welcome!
+          </Typography>
+          <p>
+            This is the platform for securely interacting with hardware
+            environments.
+          </p>
+          {/* <Copyright /> */}
+        </Box>
+      </Container>
     </Fragment>
   );
 }

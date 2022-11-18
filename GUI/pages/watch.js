@@ -1,9 +1,13 @@
 import React from "react";
 
+import Typography from "@mui/material/Typography";
+
 function WatchPage() {
   return (
     <div>
-      <h3>Livestream:</h3>
+      <Typography variant="h5" component="h1" gutterBottom>
+        Hardware Environment Livestream
+      </Typography>
       <iframe
         width="560"
         height="315"

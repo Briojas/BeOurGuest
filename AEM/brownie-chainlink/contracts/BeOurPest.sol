@@ -269,7 +269,7 @@ contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedO
         ticket_key = activity.tickets.next_submission_key - 1;
         ticket = activity.data[ticket_key].ticket; 
         emit submission_ticket(
-            msg.sender,
+            address(msg.sender),
             ticket,
             ticket_key,
             activity.pull_ticket()
