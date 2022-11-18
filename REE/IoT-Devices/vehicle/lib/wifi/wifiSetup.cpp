@@ -19,11 +19,14 @@ void wifi_init(const char wifiName[], const char wifiPW[], bool softAccessPoint,
     } else {
             //connect to existing WiFi network
         WiFi.mode(WIFI_STA); 
+        // IPAddress dns(8,8,8,8);
+        // WiFi.dnsIP(dns);
         WiFi.begin(wifiName, wifiPW);
         Serial.println("waiting for wifi to be connected...");
         while (WiFi.status() != WL_CONNECTED){delay(500);} //wait for connection
         Serial.println("WiFi connected");
         myIP = WiFi.localIP();
+        
     }
         //display IP address
     Serial.print("IP address: ");

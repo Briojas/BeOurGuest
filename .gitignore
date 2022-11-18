@@ -4,12 +4,12 @@ package/
 .env
 
 #rfidElement
-IoT-Devices/rfidElement/lib/wifi/wifiLogin.h
-IoT-Devices/rfidElement/lib/mqtt/mqttLogin.h
+REE/IoT-Devices/rfidElement/lib/wifi/wifiLogin.h
+REE/IoT-Devices/rfidElement/lib/mqtt/mqttLogin.h
 
 #vehicle
-IoT-Devices/vehicle/lib/wifi/wifiLogin.h
-IoT-Devices/vehicle/lib/mqtt/mqttLogin.h
+REE/IoT-Devices/vehicle/lib/wifi/wifiLogin.h
+REE/IoT-Devices/vehicle/lib/mqtt/mqttLogin.h
 
 #CL-EA-MQTT-CLIENT
 CL-EA-MQTT-CLIENT/.env

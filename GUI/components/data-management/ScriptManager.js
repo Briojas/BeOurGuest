@@ -26,14 +26,14 @@ function ScriptManager(props) {
         properties: {
           action: {
             type: "string",
-            enum: ["Straight", "Spin", "Strafe"],
-            default: "Straight",
+            enum: ["FOR", "REV", "CW", "CCW", "STR", "STL"],
+            default: "FOR",
           },
           power: {
             type: "integer",
-            maximum: "100",
-            minimum: "-100",
-            default: "0",
+            maximum: "99",
+            minimum: "0",
+            default: "35",
           },
           time: {
             type: "number",
