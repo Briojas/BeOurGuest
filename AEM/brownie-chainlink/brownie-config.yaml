@@ -17,20 +17,20 @@ autofetch_sources: True
 dotenv: .env
 networks:
   default: goerli
-  goerli:  
+  goerli:
     # eth_usd_price_feed: "0xD4a33860578De61DBAbDc8BFdb98FD742fA7028e"
-    fee: 100000000000000000
-    fund_amount: 5000000000000000000
+    # fee: 100000000000000000
+    # fund_amount: 5000000000000000000
     # gas_lane: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15"
     # jobId: ca98366cc7314957b8c012c72f05aeeb
-    keyhash: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15"
+    # keyhash: "0x79d3d8832d904592c0bf9818b621522c988bb8b0c05cdc3b15aea1b6e8db0c15"
     link_token: "0x326C977E6efc84E512bB9C30f76E30c160eD06FB"
     # oracle: "0xCC79157eb46F5624204f47AB42b3906cAA40eaB7"
-    update_interval: 60
-    subscription_id: 1562
-    verify: false
+    # update_interval: 60
+    # subscription_id: 1562
+    verify: true
     # vrf_coordinator: "0x2Ca8E0C643bDe4C2E08ab1fA0da3401AdAD7734D"
 wallets:
   from_key: ${PRIVATE_KEY}
-# settings:
-#   gas_limit: "100000000000"
+settings:
+  gas_limit: "10000000000000"

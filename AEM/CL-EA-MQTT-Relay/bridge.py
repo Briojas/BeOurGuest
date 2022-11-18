@@ -14,7 +14,7 @@ class Bridge(object):
         # print('on_pub ' + str(mid)) #Debugging
         if mid == self.callback['id']:
             self.callback['pending'] = False
-            self.result = 'published'
+            self.result = True
         else:
             self.callback['error'] = mid
             self.callback['source'] = 'on_publish'
@@ -23,7 +23,7 @@ class Bridge(object):
         # print('on_sub ' + str(mid)) #Debugging
         if mid == self.callback['id']:
             self.callback['pending'] = False
-            self.result = 'subscribed'
+            self.result = True
         else:
             self.callback['error'] = mid
             self.callback['source'] = 'on_subscribe'

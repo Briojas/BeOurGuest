@@ -1,15 +1,15 @@
 #!/usr/bin/python3
-from brownie import BeOurGuest, config, network
+from brownie import BeOurPest, config, network
 from scripts.helpful_scripts import (
     LOCAL_BLOCKCHAIN_ENVIRONMENTS,
     fund_with_link,
     get_account
 )
 
-def deploy_be_our_guest():
+def deploy_be_our_pest():
     day_in_seconds = 24 * 60 * 60
     account = get_account()
-    bog = BeOurGuest.deploy(
+    bop = BeOurPest.deploy(
         day_in_seconds, #high score reset interval
         60,             #retry submission interval
         60,             #retry collecting score interval
@@ -18,14 +18,12 @@ def deploy_be_our_guest():
     block_confirmations=6
     if network.show_active() in LOCAL_BLOCKCHAIN_ENVIRONMENTS:
         block_confirmations=1
-    bog.tx.wait(block_confirmations)
-    print(f"BeOurGuest deployed to {bog.address}")
-    tx = fund_with_link(
-            bog.address, amount=config["networks"][network.show_active()]["fee"]
-        )
-    tx.wait(1)
-    return bog
+    bop.tx.wait(block_confirmations)
+    print(f"BeOurGuest deployed to {bop.address}")
+    # tx = fund_with_link(bop.address)
+    # tx.wait(1)
+    return bop
 
 
 def main():
-    deploy_be_our_guest()
+    deploy_be_our_pest()

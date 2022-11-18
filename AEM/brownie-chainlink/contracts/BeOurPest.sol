@@ -158,9 +158,9 @@ library Queue_Management {
     }
 }
 
-contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedOwner{
-        //game data
-    Queue public game;
+contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedOwner{
+        //activity data
+    Queue public activity;
     using Queue_Management for Queue;
     High_Score public high_score;
     uint private high_score_time_stamp;
@@ -190,25 +190,28 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
     address private oracle;
     bytes32 private job_id_pubsub_int;
     bytes32 private job_id_pub_str;
-    uint256 private fee;
+    uint256 private oracle_fee; //LINK
+    uint256 private queue_fee; //ETH
     
     /**
      * Network: Goerli
      * Link token: 0x326C977E6efc84E512bB9C30f76E30c160eD06FB
      * Oracle: 0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0
      * Job IDs: below
-     * Fee: 0.01 LINK 
+     * Oracle Fee: 0.01 LINK 
+     * Queue Fee: 0.001 ETH
      */
     constructor(uint score_reset_interval_sec, uint retry_submitting_interval_sec, uint retry_scoring_interval_sec) ConfirmedOwner(msg.sender) {
         setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
         oracle = 0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0;
         job_id_pubsub_int =  "d9de30463fdd429aab7c2ed8dde708d8";
         job_id_pub_str =  "01c687c6a43e4b4a80d9f0f62eed6a5c";
-        fee = 0.01 * (10 ** 18);
-        game.initiate();
+        oracle_fee = 0.01 * (10 ** 18);
+        queue_fee = 0.001 * (10 ** 18);
+        activity.initiate();
         retry_submitting_interval = retry_submitting_interval_sec; //time to retry running a submitted ticket
         retry_scoring_interval = retry_scoring_interval_sec; //time to retry grabbing a ticket's score
-        high_score.reset_interval = score_reset_interval_sec; //time to reset the game's high score
+        high_score.reset_interval = score_reset_interval_sec; //time to reset the activity's high score
         high_score.score = 0;
         high_score.leader = payable(0);
         high_score_time_stamp = block.timestamp;
@@ -218,15 +221,15 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
             //high score may be reset while processing a submission
         upkeepNeeded = (block.timestamp - high_score_time_stamp) > high_score.reset_interval;
 
-        if(game.state == States.READY){
-            upkeepNeeded = game.tickets.curr_ticket < game.tickets.num_tickets;
-        }else if(game.state == States.EXECUTING){
+        if(activity.state == States.READY){
+            upkeepNeeded = activity.tickets.curr_ticket < activity.tickets.num_tickets;
+        }else if(activity.state == States.EXECUTING){
             upkeepNeeded = (block.timestamp - retry_time_stamp) > retry_submitting_interval;
-        }else if(game.state== States.EXECUTED){
+        }else if(activity.state== States.EXECUTED){
             upkeepNeeded = true;
-        }else if(game.state== States.COLLECTING){
+        }else if(activity.state== States.COLLECTING){
             upkeepNeeded = (block.timestamp - retry_time_stamp) > retry_scoring_interval;
-        }else if(game.state == States.COLLECTED){
+        }else if(activity.state == States.COLLECTED){
             upkeepNeeded = true;
         }
         performData = checkData; //unused. separated logic executed based on internal states
@@ -240,35 +243,36 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
             award_winner();
             //todo: remove deleted keys from the end of the queue for efficient contract sizing
         }
-        if(game.state == States.READY && game.tickets.curr_ticket < game.tickets.num_tickets){
+        if(activity.state == States.READY && activity.tickets.curr_ticket < activity.tickets.num_tickets){
             retry_time_stamp = block.timestamp;
-            game.tickets.curr_ticket ++;
-            game.set_curr_ticket_key();
+            activity.tickets.curr_ticket ++;
+            activity.set_curr_ticket_key();
             execute_submission();
-        }else if(game.state == States.EXECUTING && (block.timestamp - retry_time_stamp) > retry_submitting_interval){
-            game.state = States.READY;
+        }else if(activity.state == States.EXECUTING && (block.timestamp - retry_time_stamp) > retry_submitting_interval){
+            activity.state = States.READY;
             //todo: track number of retries
-        }else if(game.state == States.EXECUTED){
+        }else if(activity.state == States.EXECUTED){
             retry_time_stamp = block.timestamp;
             collect_score();
-        }else if(game.state == States.COLLECTING && (block.timestamp - retry_time_stamp) > retry_submitting_interval){
-            game.state = States.EXECUTED;
+        }else if(activity.state == States.COLLECTING && (block.timestamp - retry_time_stamp) > retry_submitting_interval){
+            activity.state = States.EXECUTED;
             //todo: track number of retries
-        }else if(game.state == States.COLLECTED){
+        }else if(activity.state == States.COLLECTED){
             check_for_high_score();
         }
     }
 
         //todo: make join_queue payable for populating award pool?
     function join_queue(bytes calldata script_cid_1, bytes calldata script_cid_2) public returns (uint ticket, uint ticket_key){
-        game.insert(script_cid_1, script_cid_2);
-        ticket_key = game.tickets.next_submission_key - 1;
-        ticket = game.data[ticket_key].ticket; 
+        // require(msg.value == queue_fee); //make payable to obtain fees?
+        activity.insert(script_cid_1, script_cid_2);
+        ticket_key = activity.tickets.next_submission_key - 1;
+        ticket = activity.data[ticket_key].ticket; 
         emit submission_ticket(
             msg.sender,
             ticket,
             ticket_key,
-            game.pull_ticket()
+            activity.pull_ticket()
         );
     }
 
@@ -279,26 +283,26 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
         bool executed,
         uint score
     ){
-        player = game.data[ticket_key].player; 
-        ticket = game.data[ticket_key].ticket;
-        string memory script_cid_1 = string(game.data[ticket_key].script_cid[0]);
-        string memory script_cid_2 = string(game.data[ticket_key].script_cid[1]);
+        player = activity.data[ticket_key].player; 
+        ticket = activity.data[ticket_key].ticket;
+        string memory script_cid_1 = string(activity.data[ticket_key].script_cid[0]);
+        string memory script_cid_2 = string(activity.data[ticket_key].script_cid[1]);
         script_cid = string.concat(script_cid_1, script_cid_2);
-        executed = game.data[ticket_key].executed;
-        score = game.data[ticket_key].score;
+        executed = activity.data[ticket_key].executed;
+        score = activity.data[ticket_key].score;
     }
     
     /**
      * Chainlink requests to
-            - send IPFS scripts to cl-ea-mqtt-relay for executing games (execute_sumbission)
-            - subscribe on game score topics to pull score data (grab_score)
-        on the MQTT broker(s) utilized by the Node's External Adapter managing the game's state.
+            - send IPFS scripts to cl-ea-mqtt-relay for executing activitys (execute_sumbission)
+            - subscribe on activity score topics to pull score data (grab_score)
+        on the MQTT broker(s) utilized by the Node's External Adapter managing the activity's state.
      */
     function execute_submission() private returns (bytes32 requestId){
         string memory action = "publish";
         string memory topic = "script";
-        string memory payload = game.pull_ticket();
-        game.update_state(); //States: READY -> EXECUTING
+        string memory payload = activity.pull_ticket();
+        activity.update_state(); //States: READY -> EXECUTING
 
             //TODO: test qos levels 
         return call_pub_str(action, topic, 0, payload, 1); 
@@ -310,7 +314,7 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
     }
     function collect_score() private returns (bytes32 requestId){
         string memory action = "subscribe";
-        game.update_state(); //States: EXECUTED -> COLLECTING
+        activity.update_state(); //States: EXECUTED -> COLLECTING
         return call_pubsub_int(action, score_topic, 0, 0, 0); //payload and retained flag ignored
     }
     function call_pubsub_int(
@@ -330,7 +334,7 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
             request.addInt("retain", _retain);
             
             // Sends the request
-            return sendChainlinkRequestTo(oracle, request, fee);
+            return sendChainlinkRequestTo(oracle, request, oracle_fee);
     }
 
     function call_pub_str( 
@@ -350,37 +354,37 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
             request.addInt("retain", _retain);
             
             // Sends the request
-            return sendChainlinkRequestTo(oracle, request, fee);
+            return sendChainlinkRequestTo(oracle, request, oracle_fee);
     }
 
     function fulfill_execution_request(bytes32 _requestId, bool status) public recordChainlinkFulfillment(_requestId){
         emit executed_ticket(
-            game.data[game.tickets.curr_ticket_key].player,
-            game.data[game.tickets.curr_ticket_key].ticket,
+            activity.data[activity.tickets.curr_ticket_key].player,
+            activity.data[activity.tickets.curr_ticket_key].ticket,
             status);
         if (status){
-            game.update_execution_status(status);
-            game.update_state(); //States: EXECUTING -> EXECUTED
+            activity.update_execution_status(status);
+            activity.update_state(); //States: EXECUTING -> EXECUTED
         }else{
-            game.state = States.READY; //resetting states 
+            activity.state = States.READY; //resetting states 
         }
         
     }
     function fulfill_score(bytes32 _requestId, uint256 score) public recordChainlinkFulfillment(_requestId){
-        game.update_score(score); 
+        activity.update_score(score); 
         emit scored_ticket(
-            game.data[game.tickets.curr_ticket_key].player,
-            game.data[game.tickets.curr_ticket_key].ticket,
+            activity.data[activity.tickets.curr_ticket_key].player,
+            activity.data[activity.tickets.curr_ticket_key].ticket,
             score);
-        game.update_state(); //States: COLLECTING -> COLLECTED
+        activity.update_state(); //States: COLLECTING -> COLLECTED
     }
 
     function check_for_high_score() private {
-        if(game.data[game.tickets.curr_ticket_key].score > high_score.score){
-            high_score.score = game.data[game.tickets.curr_ticket_key].score;
-            high_score.leader = game.data[game.tickets.curr_ticket_key].player;
+        if(activity.data[activity.tickets.curr_ticket_key].score > high_score.score){
+            high_score.score = activity.data[activity.tickets.curr_ticket_key].score;
+            high_score.leader = activity.data[activity.tickets.curr_ticket_key].player;
         }
-        game.update_state(); //States: COLLECTED -> READY
+        activity.update_state(); //States: COLLECTED -> READY
     }
 
     function award_winner() private {
@@ -392,5 +396,10 @@ contract BeOurGuest is ChainlinkClient, AutomationCompatibleInterface, Confirmed
     function withdraw_link() public onlyOwner {
         LinkTokenInterface link = LinkTokenInterface(chainlinkTokenAddress());
         require(link.transfer(msg.sender, link.balanceOf(address(this))), "Unable to transfer");
+    }
+
+    function withdraw_eth() public onlyOwner {
+        address payable to = payable(msg.sender);
+        to.transfer(address(this).balance);
     }
 }
