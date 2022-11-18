@@ -162,12 +162,16 @@ contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedO
         //activity data
     Queue public activity;
     using Queue_Management for Queue;
+
     High_Score public high_score;
     uint private high_score_time_stamp;
+
     uint private retry_submitting_interval;
     uint private retry_scoring_interval;
     uint private retry_time_stamp;
-    string private score_topic = "/score";
+    uint16 public retry_attempts;
+    uint16 public max_retry_attempts;
+
     event submission_ticket(
         address player,
         uint ticket,
@@ -191,7 +195,8 @@ contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedO
     bytes32 private job_id_pubsub_int;
     bytes32 private job_id_pub_str;
     uint256 private oracle_fee; //LINK
-    uint256 private queue_fee; //ETH
+    uint256 private queue_fee; //ETH //currently unused due to goEth being nearly unobtainable
+    string private score_topic = "/score";
     
     /**
      * Network: Goerli
@@ -202,15 +207,24 @@ contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedO
      * Queue Fee: 0.001 ETH
      */
     constructor(uint score_reset_interval_sec, uint retry_submitting_interval_sec, uint retry_scoring_interval_sec) ConfirmedOwner(msg.sender) {
+        //Chainlink services management
         setChainlinkToken(0x326C977E6efc84E512bB9C30f76E30c160eD06FB);
         oracle = 0x4e79B49ed00c905c732Eaa535D6026237D4AB9f0;
         job_id_pubsub_int =  "d9de30463fdd429aab7c2ed8dde708d8";
         job_id_pub_str =  "01c687c6a43e4b4a80d9f0f62eed6a5c";
         oracle_fee = 0.01 * (10 ** 18);
         queue_fee = 0.001 * (10 ** 18);
+
+        //start the queue
         activity.initiate();
+
+        //retry management
         retry_submitting_interval = retry_submitting_interval_sec; //time to retry running a submitted ticket
         retry_scoring_interval = retry_scoring_interval_sec; //time to retry grabbing a ticket's score
+        max_retry_attempts = 5;
+        retry_attempts = 0;
+
+        //high score management
         high_score.reset_interval = score_reset_interval_sec; //time to reset the activity's high score
         high_score.score = 0;
         high_score.leader = payable(0);
@@ -253,10 +267,14 @@ contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedO
             //todo: track number of retries
         }else if(activity.state == States.EXECUTED){
             retry_time_stamp = block.timestamp;
+            retry_attempts = retry_attempts + 1;
             collect_score();
         }else if(activity.state == States.COLLECTING && (block.timestamp - retry_time_stamp) > retry_submitting_interval){
-            activity.state = States.EXECUTED;
-            //todo: track number of retries
+            if(retry_attempts > max_retry_attempts){
+                activity.state = States.READY;
+            }else{
+                activity.state = States.EXECUTED;
+            }
         }else if(activity.state == States.COLLECTED){
             check_for_high_score();
         }
@@ -401,5 +419,10 @@ contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedO
     function withdraw_eth() public onlyOwner {
         address payable to = payable(msg.sender);
         to.transfer(address(this).balance);
+    }
+    function debug_reset() public onlyOwner {
+        //only using for testing
+        //probably need an actual version of this, but need it based on a time interval for resetting
+        activity.state = States.READY; //resetting states ; 
     }
 }

@@ -95,10 +95,10 @@ function ScriptManager(props) {
 
   return (
     <Fragment>
+      <div id="script-edit-window"></div>
       <span id="valid_indicator"></span>
       <button onClick={() => submit()}>Submit</button>
       <button onClick={() => reset()}>Reset Form</button>
-      <div id="script-edit-window"></div>
     </Fragment>
   );
 }

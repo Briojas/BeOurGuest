@@ -1,13 +1,16 @@
 import ScriptManager from "../components/data-management/ScriptManager";
 import { useWeb3React } from "@web3-react/core";
+import { ethers } from "ethers";
 import { abi } from "../constants/abi";
 
 function EngagePage() {
   const { active, chainId, account, library: provider } = useWeb3React();
 
-  function splitCID(cid){
-    
-    
+  function splitCID(cid) {
+    return [
+      Buffer.from(cid.slice(0, 31), "utf8"),
+      Buffer.from(cid.slice(31), "utf8"),
+    ];
   }
 
   async function submitScript(json) {
@@ -23,12 +26,15 @@ function EngagePage() {
 
       console.log(data.ipfsHash);
 
+      const split_cid = splitCID(data.ipfsHash);
+
       //submit to contract via metamask
       const signer = provider.getSigner();
-      const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+      const contractAddress = "0x714c52208323D9Cd676f7529108833AbA1Da8455";
       const contract = new ethers.Contract(contractAddress, abi, signer);
+
       try {
-        await contract.store(42);
+        await contract.join_queue(split_cid[0], split_cid[1]);
       } catch (error) {
         console.log(error);
       }
