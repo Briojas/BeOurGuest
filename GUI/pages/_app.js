@@ -33,6 +33,7 @@ function MyApp({ Component, pageProps }) {
           href="https://unpkg.com/spectre.css/dist/spectre-icons.min.css"
         />
         <script src="https://cdn.jsdelivr.net/npm/@json-editor/json-editor@latest/dist/jsoneditor.min.js"></script>
+        <script src="https://player.twitch.tv/js/embed/v1.js"></script>
         <script>
           JSONEditor.defaults.theme = 'spectre'; JSONEditor.defaults.iconlib =
           'spectre';

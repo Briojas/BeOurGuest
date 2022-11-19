@@ -17,20 +17,21 @@ function EngagePage() {
     if (active) {
       //check metamask is connected
       //build json file and send to api
+      console.log(json);
       const response = await fetch("/api/new-script", {
         method: "POST",
         body: JSON.stringify(json),
       });
 
       const data = await response.json();
-
+      console.log(data);
       console.log(data.ipfsHash);
 
       const split_cid = splitCID(data.ipfsHash);
 
       //submit to contract via metamask
       const signer = provider.getSigner();
-      const contractAddress = "0x714c52208323D9Cd676f7529108833AbA1Da8455";
+      const contractAddress = "0xC33A49b02FD0432148dcF77Ef876a454bA30578a";
       const contract = new ethers.Contract(contractAddress, abi, signer);
 
       try {

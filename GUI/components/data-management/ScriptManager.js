@@ -3,6 +3,7 @@ import { Fragment, useEffect } from "react";
 
 function ScriptManager(props) {
   var editor;
+  var json_formatted;
 
   const script_template = {
     action: "Straight",
@@ -69,13 +70,13 @@ function ScriptManager(props) {
     else {
       indicator.style.color = "green";
       indicator.textContent = "valid";
+      json_formatted = {
+        script: editor.getValue(),
+      };
     }
   }
 
   async function submit() {
-    const json_formatted = {
-      script: editor.getValue(),
-    };
     props.onNewScript(json_formatted); //send to api
   }
 
@@ -88,7 +89,7 @@ function ScriptManager(props) {
     editor = new JSONEditor(container, editor_config);
 
     editor.on("change", validate);
-  }, []);
+  });
 
   return (
     <Fragment>

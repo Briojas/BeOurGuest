@@ -317,7 +317,7 @@ contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedO
         on the MQTT broker(s) utilized by the Node's External Adapter managing the activity's state.
      */
     function execute_submission() private returns (bytes32 requestId){
-        string memory action = "publish";
+        string memory action = "ipfs";
         string memory topic = "script";
         string memory payload = activity.pull_ticket();
         activity.update_state(); //States: READY -> EXECUTING

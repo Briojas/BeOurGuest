@@ -9,13 +9,12 @@ function WatchPage() {
         Hardware Environment Livestream
       </Typography>
       <iframe
-        width="560"
-        height="315"
-        src="https://www.youtube.com/embed/21X5lGlDOfg"
-        title="YouTube video player"
-        frameBorder="0"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowfullscreen
+        src="https://player.twitch.tv/?channel=whoalookout&parent=www.beourpest.com"
+        frameborder="0"
+        allowFullScreen={true}
+        scrolling="no"
+        height="378"
+        width="620"
       ></iframe>
     </div>
   );

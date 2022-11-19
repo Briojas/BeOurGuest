@@ -18,7 +18,7 @@ function HomePage(props) {
             Welcome!
           </Typography>
           <p>
-            This is the platform for securely interacting with hardware
+            This is a platform for securely interacting with hardware
             environments.
           </p>
           {/* <Copyright /> */}
