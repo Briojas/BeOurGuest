@@ -1,55 +1,59 @@
-### DaDerpyDerby
-*Chainlink Spring 22 Hackathon Submission*
+### BeOurPest
+
+_Chainlink Fall 22 Hackathon Submission_
+
+- Full Disclosure: This submission is an addendum to my [Spring 22 Hackathon Submission](https://github.com/Briojas/BeOurPest/blob/main/Docs/2022%20Chainlink%20Spring%20Hackathon.md)
 
 # Key Features
-- [Keepers-compatible](https://keepers.chain.link/kovan/3373) [contract](https://kovan.etherscan.io/address/0x760BF4Aa9d5872Dd0E7Fd9b793c52fB12a4635fa) manages a queue of game submissions for execution and scoring
-- External adapter executes [IPFS scripts](https://bafybeidqzb7nkhfcvv55ibuudginz3u7d6d7vgoohh45zdgtppdy7njrby.ipfs.dweb.link/example_script_derby_vehicle.json) to control and score game elements
-- MQTT client IoT device templates
+
+- Web3 Frontend allows users to create and submit scripts to control remote hardware-enabled environments
 
 ## Inspiration
-My wife and I have an empty bedroom, and she let me convert it into a workshop. A dream of mine has been to house some Chainlink nodes in its unused closet, and make a few extra bucks. This made me think, could I also utilize the room itself? Thus, the idea of hosting remote arcades in families' unused spare-bedrooms was born. Players from around the world could stake funds and compete against one another for the spoils. I see a future where Chainlink oracles are a conduit, not just for pulling, but for pushing data to control complex behaviors within an IoT network. My goal with this hackathon has been to experiment with the tech required for implementing a secure, autonomous, remote, physical arcade game.
+
+I have had a passion for embedded systems since college, and have a desire to meld this with my new found interest in the decentralized web. Sergey has been the biggest inspiration in his pursuit for a world powered by truth. He speaks often of the need for more reliable data sources, and enabling hardware to share data on-chain his how I see myself contributing to this need.
 
 ## What it does
-This project showcases a potential backend for a remote arcade. It takes in submissions, queues them up, executes them, grabs their score, and, lastly, checks if this score is the new high score. Here's a more delineated walkthrough:
-1. When a user submits an IPFS content id (CID) number to this smart contract, it places it in a queue to be processed
-    - this CID should point to a valid script JSON file. ([example](https://bafybeidqzb7nkhfcvv55ibuudginz3u7d6d7vgoohh45zdgtppdy7njrby.ipfs.dweb.link/example_script_derby_vehicle.json))
-2. A [Keepers Upkeep is registered](https://keepers.chain.link/kovan/3373) to monitor the contract for submissions
-    - The Upkeep also manages other states of the queue
-3. When the queue is not empty, these CIDs are sent to an external adapter for processing via sendChainlinkRequestTo()
-4. The external adapter connects to, and publishes data on, a secure, pre-defined MQTT Broker
-    - A free HiveMQ private broker was used for this project
-5. After the ChainlinkFulfillment returns, another Chainlink request is sent to collect the submission's score
-6. The score pulled is then checked against the high score
-7. The process repeats with the next submission in the queue
-8. After 24-hours, the high score leader would be awarded that day's pool of cash, and then the score is reset
+
+This project was supposed to showcase a user's perspective on interacting with a remote environment from a Web3 site, but I was just not able to overcome the integration nightmare that was this undertaking.
+
+In an ideal situation:
+
+1. The user navigates to the [BeOurPest](https://beourpest.com/) website, and connects their metamask wallet.
+2. Watches events occuring on the "Watch" tab.
+3. Engages with events on the "Engage" tab using the json tool and signing the transaction to send it to the BeOurPest contract for processing.
+4. And, signs up to become a host on the "Host" tab by setting up their own environment locally.
 
 ## How we built it
-Smart Contract:
-- Written in solidity, Brownie was used for compiling, deployment, and scripting
 
-External Adapter:
-- Written in python, Pipenv and Pytest was used for management and testing
-
-IoT devices:
-- Written in C++, PlatformIO was used for dependency management, compiling, testing, deployment, and serial monitoring
+NextJS and the Web3-React library
 
 ## Challenges we ran into
-My wife and I had a son (Nick) born on 4/21/22, the day before the hackathon started. I did not have time to build a GUI for this project, and considered not submitting. However, I was able to finish a bit more than I expected, and decided I wanted to share where I'm at with the project.
 
-Also, my Linux machine running my Chainlink node kept crashing. Still trying to figure that one out. 
+This was really an integration nightmare. Migrating from Kovan to Goerli was a larger challenge than I anticiapated. The time consumed from testing connections between the interfaces is what doomed me in the end I think.
+
+Interfaces tested:
+
+- Web3 UI to Smart Contract
+- Web3 UI to IPFS
+- Smart Contract monitoring upkeep on Chainlink Automation
+- Smart Contract to Node jobs
+- Node jobs communicating to external adapter bridge
+- Bridge pulling IPFS
+- Bridge connecting to hardware through MQTT Broker (pub-sub protocol)
 
 ## Accomplishments that we're proud of
-The Keepers Upkeep successfully monitoring the smart contract's states for execution was something I did not think I would even start, much less finish, much less actually work.
 
-Storing data on IPFS and pulling it down for execution opens endless possibilitiesx for this project.
+I progressed my frontend development skills further than I thought, and maintained running my own Chainlink node and external adapter through the Kovan-Goerli migration.
 
 ## What we learned
-- IPFS storage on web3.storage, and utilizing CIDs to retrieve data
-- Keepers-compatibility
-- Solidity iterable-mappings (used to create the queue) and events
 
-## What's next for Da Derpy Derby
-- A GUI is needed for easily creating scripts, pushing them to IPFS, and submitting them to the contract for processing. 
-    - A way to watch a stream of the field executing submissions would also be nice
-- Collecting, holding, and awarding users' funds for playing/winning
-- Utilizing a DAO to ensure fair play has occurred and enable control to adjust something that was unfair
+- React/NextJS
+- Web3.js
+- Chainlink Automation
+- Fleek IPFS Hosting and Storage
+
+## What's next for BeOurPest
+
+- A more defined GUI that actually works
+- Enabling a user to become a host
+- Developing a dedicated hardware environment kit for less experienced people who would like to host

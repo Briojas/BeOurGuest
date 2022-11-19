@@ -14,34 +14,43 @@ function EngagePage() {
   }
 
   async function submitScript(json) {
-    if (active) {
-      //check metamask is connected
-      //build json file and send to api
-      console.log(json);
-      const response = await fetch("/api/new-script", {
-        method: "POST",
-        body: JSON.stringify(json),
-      });
+    const response = await fetch("/api/new-script", {
+      method: "POST",
+      body: JSON.stringify(json),
+    });
 
-      const data = await response.json();
-      console.log(data);
-      console.log(data.ipfsHash);
+    const data = await response.json();
+    console.log(data);
+    console.log(data.ipfsHash);
 
-      const split_cid = splitCID(data.ipfsHash);
+    // if (active) {
+    //   //check metamask is connected
+    //   //build json file and send to api
+    //   console.log(json);
+    //   const response = await fetch("/api/new-script", {
+    //     method: "POST",
+    //     body: JSON.stringify(json),
+    //   });
 
-      //submit to contract via metamask
-      const signer = provider.getSigner();
-      const contractAddress = "0xC33A49b02FD0432148dcF77Ef876a454bA30578a";
-      const contract = new ethers.Contract(contractAddress, abi, signer);
+    //   const data = await response.json();
+    //   console.log(data);
+    //   console.log(data.ipfsHash);
 
-      try {
-        await contract.join_queue(split_cid[0], split_cid[1]);
-      } catch (error) {
-        console.log(error);
-      }
-    } else {
-      console.log("Please connect/install MetaMask wallet");
-    }
+    //   const split_cid = splitCID(data.ipfsHash);
+
+    //   //submit to contract via metamask
+    //   const signer = provider.getSigner();
+    //   const contractAddress = "0xC33A49b02FD0432148dcF77Ef876a454bA30578a";
+    //   const contract = new ethers.Contract(contractAddress, abi, signer);
+
+    //   try {
+    //     await contract.join_queue(split_cid[0], split_cid[1]);
+    //   } catch (error) {
+    //     console.log(error);
+    //   }
+    // } else {
+    //   console.log("Please connect/install MetaMask wallet");
+    // }
   }
 
   return (

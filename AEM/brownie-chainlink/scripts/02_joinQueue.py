@@ -7,15 +7,8 @@ def main():
     account = get_account()
     bop_contract = BeOurPest[-1]
     key = 0
-    #bog_contract.address = 0x714c52208323D9Cd676f7529108833AbA1Da8455
-    script_cid = 'bafybeiguqxkjrp23hstv7gnyxvjaj3g65uamjj46orho7mxcjbrskjuo5u'
-    #     'bafybeidgztg2wqzqhvohs675mj3ahhgaiugjbq4ftb2xvensfdrhus3sga',
-    #     'bafybeidglme5rxmmlzsrtv6t6r5lbqkhaqox645x54v3qvznjjnechlfq4',
-    #     'bafybeibdsi6vuh6a7fewk3yd2usazfc5ot3zerkc5sqn5qtq2jb3vaoi6i',
-    #     'bafybeidrjoe7dk433llirtlhbqj3zct3a7ke76l7f7ic33emtgqxwhfs7q',
-    #     'bafybeiababpqybx4plyriq6c54cxo62a3httlcq5gr73bbwwf7v6h2dhnq',
-    #     'bafybeig2ow23jyppvcx5e6xh6bz6jnyvmlhb53up7dsyjvl3cqq6snwlna',
-    #     'bafybeia726nvawbg2m2laaeohlq5txihpyzk6z5und3mnmbuqotstu5yli'
+    
+    script_cid = 'bafybeifs5yosgtlg6zupie7daldhff6ceczksb4ugs5lbddsajzwjtfd6u'
 
     cid_bytes = split_cid(script_cid)
     print(cid_bytes)

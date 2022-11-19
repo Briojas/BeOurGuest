@@ -323,7 +323,7 @@ contract BeOurPest is ChainlinkClient, AutomationCompatibleInterface, ConfirmedO
         activity.update_state(); //States: READY -> EXECUTING
 
             //TODO: test qos levels 
-        return call_pub_str(action, topic, 0, payload, 1); 
+        return call_pub_str(action, topic, 0, payload, 0); 
             
             //now sending ipfs CID directly to hardware for processing
             //hardware will query ipfs for the json script, and execute locally
