@@ -19,11 +19,11 @@ WiFiClientSecure wifi_client;
 #include <mqttLogin.h>
 MQTTClient mqtt_client;
 const int port = 8883;
-const char clientName[] = "derby_kart"; //must be >= 8 chars
-const int numPubs = 3;
+const char clientName[] = "derby-kart-client"; //must be >= 8 chars
+const int numPubs = 2;
 mqtt_pubSubDef_t pubs[numPubs];
-const int numChannels = 40; 
-const int numSubs = 42; //could be different from numChannels, but always greater if so
+const int numChannels = 15; 
+const int numSubs = 17; //could be different from numChannels, but always greater if so
 mqtt_pubSubDef_t subs[numSubs];
 void readSubs(String &topic, String &payload){
     Serial.println("incoming: " + topic + " - " + payload);
@@ -91,15 +91,15 @@ void setup() {
     subs[i].topic = "/" + deviceName + "/" + String(i); 
     subs[i].qos = 0;
   }
-    subs[numChannels + 1].topic = "/" + deviceName + "/start"; 
-    subs[numChannels + 1].qos = 0;
-    subs[numChannels + 2].topic = "/" + deviceName + "/time"; 
-    subs[numChannels + 2].qos = 0;
+  subs[numChannels].topic = "/" + deviceName + "/start"; 
+  subs[numChannels].qos = 0;
+  subs[numChannels + 1].topic = "/" + deviceName + "/time"; 
+  subs[numChannels + 1].qos = 0;
                //$$ PUBS $$//      (be sure to update numPubs above when defining new ones)
   pubs[0].topic = "/" + deviceName + "/score"; //publishing score because no other hardware exsits to
   pubs[0].qos = 0; 
   pubs[0].retained = true;
-  pubs[1].topic = "/" + deviceName + "/ready"; //publishing score because no other hardware exsits to
+  pubs[1].topic = "/" + deviceName + "/start"; //publishing score because no other hardware exsits to
   pubs[1].qos = 0; 
   pubs[1].retained = true;
                 //$$ connect $$//
@@ -116,6 +116,8 @@ void setup() {
   setMotorPins(FrontRight);
   setMotorPins(BackRight);
   setMotorPins(BackLeft);
+///////////////   Iinit Messages   ///////////////
+  Serial.println("Ready to take commands.");
 }
 
 void loop() {
@@ -131,7 +133,11 @@ void processCommands(){
   if(start_commands){
     //get time
     time_start = millis()/1000;
-    time_end = time_start + subs[numChannels + 2].payload.toDouble();
+    time_end = time_start + subs[numChannels + 1].payload.toDouble();
+    Serial.print("Running from: ");
+    Serial.print(time_start);
+    Serial.print(" to ");
+    Serial.println(time_end);
     for(int i=0;i<numChannels;i++){
       time_start = millis()/1000;
       while(powAtDirForDur(subs[i].payload,time_start)){
@@ -139,13 +145,19 @@ void processCommands(){
         if(millis()/1000 > time_end){break;};
       }
       if(millis()/1000 > time_end){break;};
+      Serial.print(i);
+      Serial.println(" command executed");
     }
+    stopAll();
     start_commands = false;
     pubs[1].payload = "0";
     kart_mqtt_client.publish(pubs[1]);
+    /*****FAKE SCORE*****/
+    pubs[0].payload = "7";
+    kart_mqtt_client.publish(pubs[0]);
+    delay(2000); //allow pubs to push through
   }else{
-    stopAll();
-    if(subs[numChannels + 1].payload == "1"){
+    if(subs[numChannels].payload == "1"){
       start_commands = true;
     }
   }
@@ -207,9 +219,17 @@ bool powAtDirForDur(String command, double startTime){
   double currTime = millis()/1000;
 
   //example String command: FOR451.24525
-  String dir = command.substring(0,2); //ex = "FOR" (Forward)
-  int power = command.substring(2,3).toInt(); //ex = 45 (45%), should be <= 99
-  double dur = command.substring(3).toDouble();  //ex = 1.24525 (seconds)
+  String dir = command.substring(0,3); //ex = "FOR" (Forward)
+  int power = command.substring(3,5).toInt(); //ex = 45 (45%), should be <= 99
+  double dur = command.substring(5).toDouble();  //ex = 1.24525 (seconds)
+    
+    //debugging:
+  // Serial.print("dir: ");
+  // Serial.print(dir);
+  // Serial.print(" at: ");
+  // Serial.print(power);
+  // Serial.print(" for: ");
+  // Serial.println(dur);
 
   if((currTime - startTime) < dur){
     if(dir == "FOR"){
@@ -229,8 +249,8 @@ bool powAtDirForDur(String command, double startTime){
     }
     return true;
   }else{
-    stopAll();
-    delay(25);
+    // stopAll();
+    // delay(25);
     return false;
   }
 }

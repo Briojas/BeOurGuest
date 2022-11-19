@@ -185,12 +185,16 @@ class Bridge(object):
         url = 'https://ipfs.io/ipfs/' + cid
         site = requests.get(url)
             #find the file
-        fileIdentifier = 'filename='
-        fileType = '.json'
-        filenameStart = site.text.find(fileIdentifier)
-        filenameEnd = site.text.find(fileType, filenameStart)
-        filename = site.text[(filenameStart + len(fileIdentifier)):(filenameEnd + len(fileType))]
-        file = requests.get(url + '/' + filename).json()
+        # fileIdentifier = 'filename='
+        # fileType = '.json'
+        # filenameStart = site.text.find(fileIdentifier)
+        # filenameEnd = site.text.find(fileType, filenameStart)
+        # filename = site.text[(filenameStart + len(fileIdentifier)):(filenameEnd + len(fileType))]
+        # file = requests.get(url + '/' + filename).json()
+
+            #posting data from fleek, don't neef filename
+        file = requests.get(url).json() 
+        print(file)
         if subtask == 'script':
             self.result = self.__script(file)
         else:
@@ -200,33 +204,59 @@ class Bridge(object):
             'payload': cid}]
 
     def __script(self, script):
-        game_start = time.time()
             #TODO: Make game_length a parameter fed to the external adapter?
-        game_length = 20 # scripts execute for 1 minutes
+        game_length = 20 # seconds
+        num_channels = 15
+        command_channel = "/derby-kart-client/"
+        time_for_commands = {
+                'topic': '/derby-kart-client/time',
+                'payload': "20",
+                'qos': 0,
+                'retain': 0
+            }
+        start_commands = {
+                'topic': '/derby-kart-client/start',
+                'payload': "1",
+                'qos': 0,
+                'retain': 0
+            }
         reset_data = {
-                'topic': '/daderpyderby/score',
+                'topic': '/derby-kart-client/score',
                 'payload': 0,
                 'qos': 0,
-                'retain': 1
+                'retain': 0
             }
         self.subscribe(reset_data) #subscribing to score to validate it publishing after game
         self.publish(reset_data) #resetting score for upcoming game
-        for device in self.scoring_element_data:
-            self.subscribe(device) #subscribe to relevant scoring topics
-        while(time.time() - game_start <= game_length):
-            for action in script['script']:
-                if action['action'] == 'publish':
-                    for topic in action['data']:
-                        if 'score' not in topic['topic']: #ignore any attempts to publish directly to scoring topics...
-                            self.publish(topic)
-                if action['action'] == 'subscribe':
-                    for topic in action['data']:
-                        self.subscribe(topic)
-                if action['action'] == 'delay':
-                    time.sleep(action['data'])
-        self.__collect_publish_scores()
-        self.__reset_game()
-        self.__clear_element_scores()
+        self.publish(time_for_commands) #sending game length
+        # for device in self.scoring_element_data:
+        #     self.subscribe(device) #subscribe to relevant scoring topics
+        curr_channel = 0
+        for action in script['script']:
+            if(len(str(action['power'])) < 2):
+                power = "0" + str(action['power'])
+            else:
+                power = str(action['power'])
+            command = {
+                'topic': command_channel + str(curr_channel),
+                'payload': action['action'] + power + str(action['time']),
+                'qos': 0,
+                'retain': 0
+            }
+            self.publish(command)
+            curr_channel = curr_channel + 1
+            time.sleep(1)
+            if(curr_channel>num_channels):
+                break
+        self.publish(start_commands)
+        game_start = time.time()
+        while(time.time() - game_start <= game_length): #check status of kart
+            status = self.__get_data_on(start_commands['topic'])
+            if(status == "0"):
+                break
+        # self.__collect_publish_scores()
+        self.__reset_game(script)
+        # self.__clear_element_scores()
         return True #TODO: add error catching
 
     def __collect_publish_scores(self):
@@ -253,21 +283,23 @@ class Bridge(object):
             }
         self.publish(blank_data) #pushing through blank data to force the previous retained publish
 
-    def __reset_game(self): 
+    def __reset_game(self, script): 
         #TODO: use sensors on vehicles and field to place game into reset position
-        motors = [
-            '/derby_kart/fr',
-            '/derby_kart/fl',
-            '/derby_kart/bl',
-            '/derby_kart/br']
-        for motor_topic in motors:
-            motor_data = {
-                'topic': motor_topic,
-                'payload': 0,
+        num_channels = 15
+        command_channel = "/derby-kart-client/"
+        curr_channel = 0
+        for action in script['script']:
+            command = {
+                'topic': command_channel + str(curr_channel),
+                'payload': "FOR001.5",
                 'qos': 0,
-                'retain': 1
+                'retain': 0
             }
-            self.publish(motor_data)
+            self.publish(command)
+            time.sleep(1)
+            curr_channel = curr_channel + 1
+            if(curr_channel>num_channels):
+                break
 
     def __clear_element_scores(self):
         for device in self.scoring_element_data:

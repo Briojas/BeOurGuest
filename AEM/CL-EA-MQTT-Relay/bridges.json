@@ -1,20 +1,20 @@
 {
-    "bridges":[
-        {
-            "name": "template",
-            "host": null,
-            "port": null,
-            "user": null,
-            "key": null,
-            "env": null
-        },
-        {
-            "name": "Public_Test_Broker_A",
-            "host": "broker.emqx.io",
-            "port": 1883,
-            "user": null,
-            "key": null,
-            "env": false
-        }
-    ]
+  "bridges": [
+    {
+      "name": "template",
+      "host": null,
+      "port": null,
+      "user": null,
+      "key": null,
+      "env": null
+    },
+    {
+      "name": "Public_Test_Broker_A",
+      "host": "PRIVATE_BROKER_DOMAIN",
+      "port": 8883,
+      "user": "PRIVATE_BROKER_ID",
+      "key": "PRIVATE_BROKER_PW",
+      "env": true
+    }
+  ]
 }

@@ -22,14 +22,14 @@ void MQTT_Client_Handler::connect(const char deviceName[], const char brokerLogi
         while(!this->mqttClient->connect(deviceName)){
             Serial.print(".");
             Serial.print(this->mqttClient->lastError());
-            delay(1000);
+            delay(2000);
         }
     }else{
         Serial.print("connecting to broker via user/key...");
         while(!this->mqttClient->connect(deviceName, brokerLogin, brokerPW)){
             Serial.print(".");
             Serial.print(this->mqttClient->lastError());
-            delay(1000);
+            delay(2000);
         }
     }
     Serial.println("\nconnected");

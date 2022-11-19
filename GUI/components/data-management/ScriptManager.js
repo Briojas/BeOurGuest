@@ -21,7 +21,7 @@ function ScriptManager(props) {
       format: "tabs",
       items: {
         title: "Command",
-        headerTemplate: "{{i}} - {{self.action}}",
+        headerTemplate: "{{i}}|{{self.action}}",
         format: "table",
         properties: {
           action: {
@@ -73,13 +73,10 @@ function ScriptManager(props) {
   }
 
   async function submit() {
-    console.log(editor.getValue());
     const json_formatted = {
       script: editor.getValue(),
     };
-    console.log(json_formatted);
-    //////send to api
-    props.onNewScript(json_formatted);
+    props.onNewScript(json_formatted); //send to api
   }
 
   async function reset() {
