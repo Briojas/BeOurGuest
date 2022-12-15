@@ -21,11 +21,18 @@ def main():
     # print(mocked.functions.join_queue(cid_bytes[0], cid_bytes[1]).estimateGas({"from": account.address}))
     # print(mocked.functions.checkUpkeep(b'').estimateGas({"from": account.address}))
     # print(mocked.functions.performUpkeep(b'').estimateGas({"from": account.address}))
+
+    upkeep = bop_contract.checkUpkeep.call(b'',{"from": account})
+    print('Needs Upkeep? ' + str(upkeep[0]))
+    if(upkeep[0]):
+        performUpkeep = bop_contract.performUpkeep.call(b'',{"from": account})
     
     ticket = bop_contract.join_queue(cid_bytes[0], cid_bytes[1], {"from": account})
     print(ticket)
     print (bop_contract.activity())
     print (bop_contract.submission_data(key))
+
+    
 
 def split_cid(cid_string):
     split_cid_bytes = [
